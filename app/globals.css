@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated color tokens with specified emerald and gold palette */
+  --background: #ffffff; /* White background */
+  --foreground: #0a0a08; /* Near-black text */
+  --card: #f7f7f6; /* Very light neutral card background */
+  --card-foreground: #0a0a08; /* Dark text on cards */
+  --popover: #ffffff;
+  --popover-foreground: #0a0a08;
+  --primary: #006e46; /* Emerald base - primary brand color */
+  --primary-foreground: #ffffff; /* White text on primary (6.33:1 contrast) */
+  --secondary: #f3a800; /* Gold base - accent color */
+  --secondary-foreground: #000000; /* Black text on secondary (10.38:1 contrast) */
+  --muted: #f7f7f6; /* Light neutral for muted elements */
+  --muted-foreground: #336350; /* Emerald muted for subtle text */
+  --accent: #f3a800; /* Gold accent */
+  --accent-foreground: #000000; /* Black text on accent */
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #cfb500; /* Gold muted for borders */
+  --input: #f7f7f6;
+  --ring: #006e46; /* Emerald for focus rings */
+  --chart-1: #006e46; /* Emerald */
+  --chart-2: #f3a800; /* Gold */
+  --chart-3: #336350; /* Emerald muted */
+  --chart-4: #cfb500; /* Gold muted */
+  --chart-5: #0a0a08; /* Dark */
+  --radius: 0.5rem;
+  --sidebar: #f7f7f6;
+  --sidebar-foreground: #0a0a08;
+  --sidebar-primary: #006e46;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3a800;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #cfb500;
+  --sidebar-ring: #006e46;
+}
+
+.dark {
+  /* Updated dark theme with specified near-black backgrounds and saturated accents */
+  --background: #0a0a08; /* Near-black background */
+  --foreground: #ffffff; /* White text */
+  --card: #000900; /* Emerald darker for cards */
+  --card-foreground: #ffffff;
+  --popover: #0a0a08;
+  --popover-foreground: #ffffff;
+  --primary: #006e46; /* Emerald base - pops on dark */
+  --primary-foreground: #ffffff;
+  --secondary: #f3a800; /* Gold base - pops on dark */
+  --secondary-foreground: #000000;
+  --muted: #336350; /* Emerald muted for subtle backgrounds */
+  --muted-foreground: #f7f7f6; /* Light text on muted */
+  --accent: #f3a800; /* Gold accent */
+  --accent-foreground: #000000;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #336350; /* Emerald muted for borders */
+  --input: #336350;
+  --ring: #006e46;
+  --chart-1: #006e46;
+  --chart-2: #f3a800;
+  --chart-3: #336350;
+  --chart-4: #cfb500;
+  --chart-5: #ffffff;
+  --sidebar: #000900;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #006e46;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3a800;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #336350;
+  --sidebar-ring: #006e46;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  /* Add rotation animation for globe */
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 6s linear infinite;
+  }
+}
