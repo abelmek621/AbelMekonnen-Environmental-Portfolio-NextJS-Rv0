@@ -7,10 +7,20 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Environmental Consultant | Hydrology, Air Quality & GIS Expert",
+  title: "Abel Mekonnen | Environmental Consultant",
   description:
     "Professional environmental consultant with 10+ years experience in hydrology, air quality & noise assessment, and GIS & remote sensing. Available for consultancy projects.",
-  generator: "v0.app",
+  // generator: "v0.app",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" }, 
+      { url: "/favicon.ico" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
   keywords: [
     "environmental consultant",
     "hydrology",
@@ -20,9 +30,9 @@ export const metadata: Metadata = {
     "remote sensing",
     "environmental consultancy",
   ],
-  authors: [{ name: "Environmental Expert" }],
+  authors: [{ name: "Abel Mekonnen G." }],
   openGraph: {
-    title: "Environmental Consultant | Expert in Hydrology & Air Quality",
+    title: "Abel Mekonnen | Expert in Environmental Consultancy",
     description:
       "Professional environmental consultant with 10+ years experience. Specializing in hydrology, air quality & noise assessment, and GIS & remote sensing.",
     type: "website",
