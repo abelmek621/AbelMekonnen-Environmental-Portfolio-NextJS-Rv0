@@ -1,55 +1,64 @@
 // app/api/telegram-webhook/route.ts
 import { NextResponse } from "next/server";
-import { TelegramNotifier, sessions } from "@/lib/telegram";
+import { TelegramNotifier } from "@/lib/telegram";
 
 const notifier = new TelegramNotifier(process.env.TELEGRAM_BOT_TOKEN, process.env.TELEGRAM_ADMIN_CHAT_ID);
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    console.log('[webhook] received update:', JSON.stringify(body, null, 2));
 
+    // Handle callback queries (button clicks)
     if (body.callback_query) {
-      const cq = body.callback_query;
-      console.log("[webhook] received callback_query", cq.data);
-      await notifier.handleCallbackQuery({
-        id: cq.id,
-        from: cq.from,
-        data: cq.data,
-        message: cq.message,
+      const { id, from, data, message } = body.callback_query;
+      console.log(`[webhook] handling callback: ${data} from ${from.id}`);
+      
+      const result = await notifier.handleCallbackQuery({
+        id,
+        from,
+        data,
+        message
       });
-      return new Response("OK");
-    }
-
-    if (body.message) {
-      const msg = body.message;
-      const chatId = msg.chat?.id;
-      const text = msg.text || "";
-      const replyToMessageId = msg.reply_to_message?.message_id || null;
-
-      console.log("[webhook] received message from", chatId, "text:", text, "reply_to:", replyToMessageId);
-
-      // append owner message to the right session (appendOwnerMessageToSession will broadcast)
-      const appended = notifier.appendOwnerMessageToSession(String(chatId), text, replyToMessageId);
-      if (appended) {
-        console.log("[webhook] owner message appended to session", appended.sessionId);
-      } else {
-        console.log("[webhook] owner message could not be mapped to a session");
+      
+      if (result.handled) {
+        return NextResponse.json({ ok: true });
       }
-
-      return new Response("OK");
     }
 
-    return new Response("No actionable update", { status: 200 });
-  } catch (err) {
-    console.error("Webhook Error:", err);
-    return new Response("Internal Server Error", { status: 500 });
-  }
-}
+    // Handle regular messages from owner
+    if (body.message && body.message.text) {
+      const { chat, message_id, text, reply_to_message } = body.message;
+      console.log(`[webhook] message from ${chat.id}: ${text}`);
+      
+      // Check if this is a reply to a force_reply message
+      if (reply_to_message) {
+        const session = notifier.appendOwnerMessageToSession(
+          String(chat.id),
+          text,
+          reply_to_message.message_id
+        );
+        
+        if (session) {
+          return NextResponse.json({ ok: true, session: session.sessionId });
+        }
+      }
+      
+      // Try to append to any recent session for this owner
+      const session = notifier.appendOwnerMessageToSession(
+        String(chat.id),
+        text,
+        null
+      );
+      
+      if (session) {
+        return NextResponse.json({ ok: true, session: session.sessionId });
+      }
+    }
 
-// helper for debugging / admin usage
-export function getActiveSessions() {
-  return Array.from(sessions.entries()).map(([id, data]) => ({
-    id,
-    ...data,
-  }));
+    return NextResponse.json({ ok: true, handled: false });
+  } catch (error) {
+    console.error('[webhook] error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }

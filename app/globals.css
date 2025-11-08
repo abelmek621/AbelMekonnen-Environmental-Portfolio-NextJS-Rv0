@@ -147,4 +147,8 @@
   .animate-spin-slow {
     animation: spin-slow 6s linear infinite;
   }
+
+  html, body {
+    overflow-x: hidden;
+  }
 }

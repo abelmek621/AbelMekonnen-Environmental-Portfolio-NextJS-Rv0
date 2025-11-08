@@ -7,64 +7,71 @@ export function PortfolioSection() {
     {
       title: "Mining & Oil Exploration",
       category: "Hydrology",
+      category2: "Air Quality & Noise",
       description:
-        "Comprehensive watershed analysis and flood risk assessment for a major metropolitan area, including stormwater management solutions.",
+        "Comprehensive environmental impact assessment including hydrogeological baseline studies; air quality, noise level, and dust monitoring /recording/.",
       image: "/urban-watershed-management-project.jpg",
-      tags: ["Flood Risk", "Stormwater", "Urban Planning"],
-      impact: "Reduced flood risk by 40%",
-      link: "https://drive.google.com/drive/folders/1SsCn9KYpCco3s7DJKEWn9lOjuyaPo4kT?usp=drive_link", // Added link property for portfolio cards
+      tags: ["Impact Assessment", "Baseline", "Monitoring"],
+      impact: "Minimized environmental impact",
+      link: "https://drive.google.com/drive/folders/1SsCn9KYpCco3s7DJKEWn9lOjuyaPo4kT?usp=drive_link",
     },
     {
       title: "Wind Power & Geothermal Energy",
       category: "Air Quality & Noise",
+      category2: "GIS & Remote Sensing",
       description:
-        "Multi-site air quality monitoring and noise impact assessment for industrial facility expansion project.",
+        "Air-quality and noise impact modelling, construction and operational air emissions, and mitigation design for sustainable power development.",
       image: "/industrial-air-quality-monitoring.jpg",
-      tags: ["Air Monitoring", "Noise Assessment", "Industrial"],
-      impact: "Ensured regulatory compliance",
+      tags: ["Air Emissions", "Modelling", "Mitigation"],
+      impact: "Modelled impacts & optimized siting",
       link: "https://docs.google.com/presentation/d/1b3FYmLWHKAUwdf8majkuPnfYSS-zjnTKuAu7HfcVkfA/edit?usp=sharing",
     },
     {
       title: "Transmission Lines & Substations",
       category: "GIS & Remote Sensing",
+      category2: "Hydrology",
       description:
-        "Comprehensive environmental impact assessment including air quality, noise, and dust monitoring for mining operations.",
+        "Route selection and corridor impact assessment using GIS-based constraints mapping, habitat and land-use analysis, EMF and erosion considerations.",
       image: "/mining-environmental-impact-assessment2.png",
-      tags: ["Mining", "Impact Assessment", "Monitoring"],
-      impact: "Minimized environmental impact",
+      tags: ["TL Corridors", "Route Selection", "Habitat Mapping"],
+      impact: "Minimized habitat impact & optimized routing",
       link: "#",
     },
     {
       title: "Environmental Audit & ESG",
       category: "Hydrology",
+      category2: "Air Quality & Noise",
       description:
-        "Coastal vulnerability assessment and erosion modeling using advanced hydrological and GIS techniques.",
+        "Corporate environmental audits and ESG gap analysis, including water-use audits, compliance reviews, and actionable roadmap to improve sustainability.",
       image: "/coastal-erosion-study-environmental.jpg",
-      tags: ["Coastal Management", "Erosion Modeling", "Climate Change"],
-      impact: "Protected 50km coastline",
+      tags: ["Environmental Audit", "ESG", "Water Audits"],
+      impact: "Improved ESG performance",
       link: "#",
     },
     {
       title: "LULC & Constarints Mapping",
       category: "GIS & Remote Sensing",
+      category2: "Hydrology",
       description:
-        "Multi-temporal satellite analysis for forest change detection and deforestation monitoring across tropical regions.",
+        "High-resolution land use / land cover mapping and constraints analysis (floodplains, protected areas, steep slopes) using multi-source satellite imagery.",
       image: "/forest-change-detection-satellite.jpg",
-      tags: ["Deforestation", "Change Detection", "Forest Management"],
-      impact: "Monitored 50,000+ hectares",
+      tags: ["LULC", "Constraints Mapping", "Remote Sensing"],
+      impact: "Delivered decision-ready maps",
       link: "#",
     },
     {
       title: "Environmental Monitoring & EMS",
       category: "Air Quality & Noise",
+      category2: "Hydrology",
       description:
-        "Large-scale environmental mapping using satellite imagery and GIS analysis for conservation planning.",
+        "Design and implementation of environmental monitoring programs and EMS, data management and reporting to support compliance and continuous improvement.",
       image: "/environmental-mapping-satellite-imagery.jpg",
-      tags: ["Satellite Imagery", "Conservation", "Mapping"],
-      impact: "Mapped 10,000+ hectares",
+      tags: ["Monitoring Network", "EMS", "Data Management"],
+      impact: "Implemented EMS & reduced incidents",
       link: "#",
     },
   ]
+
 
   return (
     <section id="portfolio" className="py-20 bg-muted/30">
@@ -98,12 +105,17 @@ export function PortfolioSection() {
                         {project.category}
                       </Badge>
                     </div>
+                    <div className="absolute top-12 left-4">
+                      <Badge variant="secondary" className="bg-background/90">
+                        {project.category2}
+                      </Badge>
+                    </div>
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <ExternalLink className="h-6 w-6 text-white" />
                     </div>
                   </div>
 
-                  <CardHeader className="pb-3">
+                  <CardHeader>
                     <CardTitle className="text-lg group-hover:text-primary transition-colors">
                       {project.title}
                     </CardTitle>
