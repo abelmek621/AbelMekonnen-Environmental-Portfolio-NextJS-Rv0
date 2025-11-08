@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,12 +9,20 @@ import { Textarea } from "@/components/ui/textarea"
 import { Mail, Phone, MapPin, Send, Linkedin, CheckCircle, AlertCircle } from "lucide-react"
 import { sendEmail } from "@/app/actions/send-email"
 
+/**
+ * NOTE:
+ * - This uses FormSubmit (https://formsubmit.co).
+ * - Replace the recipient email below if you want to forward to a different address.
+ */
+const FORMSUBMIT_ENDPOINT = "https://formsubmit.co/mekonnengebretsadikabel@gmail.com";
+
 export function ContactSection() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     company: "",
     message: "",
+    _honey: "", // honeypot for FormSubmit
   })
   const [isLoading, setIsLoading] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<{
@@ -23,43 +30,71 @@ export function ContactSection() {
     message: string
   }>({ type: null, message: "" })
 
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setSubmitStatus({ type: null, message: "" })
 
-    try {
-      const result = await sendEmail(formData)
+    // If honeypot filled, treat as spam
+    if (formData._honey) {
+      setSubmitStatus({ type: "error", message: "Spam detected." });
+      return;
+    }
 
-      if (result.success) {
+    setIsLoading(true);
+
+    try {
+      // Build FormData exactly as a normal form would
+      const payload = new FormData();
+      payload.append("name", formData.name);
+      payload.append("email", formData.email);
+      payload.append("company", formData.company);
+      payload.append("message", formData.message);
+
+      // Optional FormSubmit control fields:
+      payload.append("_subject", `Portfolio Contact: ${formData.name}${formData.company ? ` — ${formData.company}` : ""}`);
+      payload.append("_replyto", formData.email); // sets reply-to for forwarded email
+      payload.append("_honey", formData._honey); // honeypot
+      // You can set template to "table" or "plain" (FormSubmit support)
+      payload.append("_template", "table");
+
+      const res = await fetch(FORMSUBMIT_ENDPOINT, {
+        method: "POST",
+        body: payload,
+        // Do not set Content-Type; browser will set multipart/form-data with boundary
+      });
+
+      // FormSubmit will normally redirect when submitted from a real form,
+      // but when using fetch it responds with a status.
+      if (res.ok) {
         setSubmitStatus({
           type: "success",
-          message: "Thank you! Your message has been sent successfully. I'll get back to you soon.",
-        })
-        // Reset form
-        setFormData({ name: "", email: "", company: "", message: "" })
+          message: "Thank you! Your message has been sent.",
+        });
+        setFormData({ name: "", email: "", company: "", message: "", _honey: "" });
       } else {
+        // Non-200 — show friendly message
+        const text = await res.text();
         setSubmitStatus({
           type: "error",
-          message: result.error || "Failed to send message. Please try emailing directly.",
-        })
+          message: `Failed to send message. (${res.status}) ${text || ""}`,
+        });
       }
-    } catch (error) {
+    } catch (err) {
       setSubmitStatus({
         type: "error",
         message: "An unexpected error occurred. Please try emailing directly.",
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }))
-  }
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const contactInfo = [
     {
@@ -71,22 +106,22 @@ export function ContactSection() {
     {
       icon: Phone,
       title: "Phone",
-      value: "+251 983 342 040",
-      href: "tel:+251983342040",
+      value: "+251 983 342 060",
+      href: "tel:+251983342060",
     },
     {
       icon: Linkedin,
       title: "LinkedIn",
       value: "Connect on LinkedIn",
-      href: "https://www.linkedin.com/in/your-profile",
+      href: "https://www.linkedin.com/in/abel-mekonnen-055a93147",
     },
     {
       icon: MapPin,
       title: "Location",
       value: "Available Worldwide",
-      href: null,
+      href: "Addis Ababa, Ethiopia",
     },
-  ]
+  ];
 
   return (
     <section id="contact" className="py-20 bg-muted/30">
@@ -179,6 +214,20 @@ export function ContactSection() {
                       disabled={isLoading}
                     />
                   </div>
+
+                  {/* HONEYPOT - hidden from users, traps bots (FormSubmit expects a hidden honeypot field like _honey) */}
+                  <div style={{ display: "none" }}>
+                    <label htmlFor="_honey">Leave this field empty</label>
+                    <input
+                      id="_honey"
+                      name="_honey"
+                      value={formData._honey}
+                      onChange={handleChange}
+                      autoComplete="off"
+                      tabIndex={-1}
+                    />
+                  </div>
+
                   <div>
                     <Textarea
                       name="message"

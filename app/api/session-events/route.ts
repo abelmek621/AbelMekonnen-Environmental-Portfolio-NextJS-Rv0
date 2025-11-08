@@ -1,103 +1,80 @@
 // app/api/session-events/route.ts
-import { NextResponse } from "next/server";
-import { sessions } from "@/lib/telegram";
+import { NextRequest } from 'next/server';
+import { sessions } from '@/lib/telegram';
 
-declare global {
-  var __LIVECHAT_SSE_SUBSCRIBERS__: Record<string, Array<ReadableStreamDefaultController<any>>> | undefined;
-  var __broadcastSessionUpdate__: ((sessionId: string, payload: any) => void) | undefined;
-}
+// Store connected clients
+const clients = new Map<string, ReadableStreamDefaultController[]>();
 
-if (!globalThis.__LIVECHAT_SSE_SUBSCRIBERS__) globalThis.__LIVECHAT_SSE_SUBSCRIBERS__ = {};
-const subscribers = globalThis.__LIVECHAT_SSE_SUBSCRIBERS__ as Record<string, Array<ReadableStreamDefaultController<any>>>;
-
-function sendEvent(ctrl: ReadableStreamDefaultController<any>, data: any) {
-  try {
-    ctrl.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`));
-  } catch (e) {
-    // controller may be closed; ignore
-  }
-}
-
-// register global broadcast function once (survives HMR)
-if (!globalThis.__broadcastSessionUpdate__) {
-  globalThis.__broadcastSessionUpdate__ = (sessionId: string, payload: any) => {
-    const list = subscribers[sessionId] || [];
-    for (const ctrl of list.slice()) {
+// This is the REAL broadcast function that should be used globally
+function broadcastSessionUpdate(sessionId: string, payload: any) {
+  const sessionClients = clients.get(sessionId);
+  if (sessionClients) {
+    const data = `data: ${JSON.stringify(payload)}\n\n`;
+    sessionClients.forEach(controller => {
       try {
-        sendEvent(ctrl, { type: "session_update", session: payload });
+        controller.enqueue(new TextEncoder().encode(data));
       } catch (e) {
-        // ignore
+        console.warn('[session-events] failed to send to client:', e);
       }
-    }
-  };
-}
-
-/**
- * SSE endpoint: GET /api/session-events?sessionId=...
- * Sends an initial 'init' event (session or null) and then keeps the stream open.
- */
-export async function GET(request: Request) {
-  try {
-    const url = new URL(request.url);
-    const sessionId = url.searchParams.get("sessionId");
-    if (!sessionId) {
-      return NextResponse.json({ error: "sessionId required" }, { status: 400 });
-    }
-
-    const stream = new ReadableStream({
-      start(controller) {
-        // add controller to subscribers for this session
-        if (!subscribers[sessionId]) subscribers[sessionId] = [];
-        subscribers[sessionId].push(controller);
-
-        // send initial state immediately
-        try {
-          const sess = sessions && typeof sessions.get === "function" ? sessions.get(sessionId) : null;
-          sendEvent(controller, { type: "init", session: sess || null });
-        } catch (err) {
-          sendEvent(controller, { type: "init", session: null });
-        }
-      },
-      cancel(_reason) {
-        // remove controller on disconnect
-        if (!subscribers[sessionId]) return;
-        subscribers[sessionId] = subscribers[sessionId].filter((c) => c !== this);
-      },
     });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-  } catch (err) {
-    console.error("[session-events] error", err);
-    return NextResponse.json({ error: "internal" }, { status: 500 });
+    console.log(`[session-events] broadcast to ${sessionClients.length} clients for session ${sessionId}`);
   }
 }
 
-/**
- * Exported helper broadcast function (calls the global one).
- * Other modules can import this if they prefer (but prefer globalThis.__broadcastSessionUpdate__).
- */
-export function broadcastSessionUpdate(sessionId: string, payload: any) {
-  try {
-    if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
-      globalThis.__broadcastSessionUpdate__(sessionId, payload);
-    } else {
-      // fallback: send directly to any subscribers in this module
-      const list = subscribers[sessionId] || [];
-      for (const ctrl of list.slice()) {
-        try {
-          sendEvent(ctrl, { type: "session_update", session: payload });
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
-  } catch (e) {
-    console.warn("[session-events] broadcastSessionUpdate failed", e);
-  }
+// Set the global broadcast function - THIS IS CRITICAL
+if (typeof globalThis.__broadcastSessionUpdate__ === 'undefined') {
+  globalThis.__broadcastSessionUpdate__ = broadcastSessionUpdate;
+  console.log('[session-events] Global broadcast function set');
 }
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const sessionId = searchParams.get('sessionId');
+
+  if (!sessionId) {
+    return new Response('Missing sessionId', { status: 400 });
+  }
+
+  const stream = new ReadableStream({
+    start(controller) {
+      // Add client to the session
+      if (!clients.has(sessionId)) {
+        clients.set(sessionId, []);
+      }
+      clients.get(sessionId)!.push(controller);
+
+      // Send initial session state if exists
+      const session = sessions.get(sessionId);
+      if (session) {
+        const data = `data: ${JSON.stringify(session)}\n\n`;
+        controller.enqueue(new TextEncoder().encode(data));
+      }
+
+      // Cleanup on close
+      request.signal.addEventListener('abort', () => {
+        const sessionClients = clients.get(sessionId);
+        if (sessionClients) {
+          const index = sessionClients.indexOf(controller);
+          if (index > -1) {
+            sessionClients.splice(index, 1);
+          }
+          if (sessionClients.length === 0) {
+            clients.delete(sessionId);
+          }
+        }
+        console.log(`[session-events] Client disconnected from session ${sessionId}`);
+      });
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+
+// Export the broadcast function for direct use if needed
+export { broadcastSessionUpdate };

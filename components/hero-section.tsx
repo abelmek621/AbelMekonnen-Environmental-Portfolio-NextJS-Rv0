@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowDown, Mail } from "lucide-react"
 
 const IMAGES = [
-  "images/hero-3.png",
-  "images/hero-6.jpg",
+  "images/hero-8.png",
+  "images/hero-9.png",
   "images/hero-7.png",
   // add more images here if you want a longer slideshow
 ];
@@ -103,7 +103,7 @@ export function HeroSection() {
           </div>
 
           <div className="animate-bounce">
-            <Button className="bg-transparent hover:border-1 hover:bg-transparent hover:border-primary hover:round-full">
+            <Button className="bg-transparent hover:border-1 hover:bg-transparent hover:border-primary hover:rounded-full">
             <a href="#about" aria-label="Scroll to about section">
               <ArrowDown className="h-6 w-6 mx-auto text-bold text-muted-foreground" />
             </a>

@@ -8,6 +8,14 @@ export function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
+  const profilePicture = [
+    {
+      name: "Profile Picture",
+      title: "Abel Mekonnen",
+      image: "/My-Profile-Pic-2.jpg",
+    },
+  ]
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
@@ -15,6 +23,13 @@ export function Navigation() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const home = [
+    {
+      title: "Home",
+      link: "#",
+    },
+  ]
 
   const navItems = [
     { href: "#about", label: "About" },
@@ -32,13 +47,30 @@ export function Navigation() {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex-shrink-0">
-            <h1 className="text-xl font-bold text-primary">ABEL MEKONNEN G.</h1> {/* Environmental Expert */}
+          <div className="flex flex-wrap items-center gap-6 flex-shrink-0">
+            {profilePicture.map((index) => (
+              <img
+                src={index.image || "/placeholder.svg"}
+                alt={index.title}
+                className={`rounded-full w-12 h-12 object-cover ${
+                  isScrolled ? "border-transparent" : "border" }`}
+              />
+            ))}
+            
+            {home.map((index) => (
+              <a 
+                key={index.title}
+                href={index.link}
+              >
+                <h1 className="text-xl font-bold text-primary">ABEL MEKONNEN G.</h1> {/* Environmental Expert */}
+              </a>
+            ))}
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
+            <div className={`ml-10 flex items-baseline space-x-4 ${
+        isScrolled ? "border-transparent" : "border-b" }`}>
               {navItems.map((item) => (
                 <a
                   key={item.href}
@@ -62,7 +94,8 @@ export function Navigation() {
         {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-b border-border">
+            <div className={`px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background border-border border-b w-32 ml-120 ${
+        isScrolled ? setIsOpen(!isOpen) : "" }`}>
               {navItems.map((item) => (
                 <a
                   key={item.href}
