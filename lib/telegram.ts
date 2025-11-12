@@ -1,99 +1,182 @@
 // lib/telegram.ts
 import crypto from "crypto";
+import { Redis } from "@upstash/redis";
 
 /**
- * Shared dev-friendly memory (survive HMR).
+ * Shared global maps so sessions survive hot reload in dev.
  */
 declare global {
   var __LIVECHAT_SESSIONS__: Map<string, any> | undefined;
   var __LIVECHAT_MSGMAP__: Record<string, string> | undefined;
   var __broadcastSessionUpdate__: ((sessionId: string, payload: any) => void) | undefined;
 }
-if (!globalThis.__LIVECHAT_SESSIONS__) globalThis.__LIVECHAT_SESSIONS__ = new Map();
+
+if (!globalThis.__LIVECHAT_SESSIONS__) globalThis.__LIVECHAT_SESSIONS__ = new Map<string, any>();
 if (!globalThis.__LIVECHAT_MSGMAP__) globalThis.__LIVECHAT_MSGMAP__ = {};
 
+/** in-memory session store (primary for dev) */
 export const sessions: Map<string, any> = globalThis.__LIVECHAT_SESSIONS__!;
 export const msgIdToSessionMap: Record<string, string> = globalThis.__LIVECHAT_MSGMAP__!;
+
+/** Upstash Redis client (optional: only when env vars set) */
+// cast env to string|undefined for TypeScript
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL as string | undefined;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN as string | undefined;
+
+let redis: Redis | null = null;
+if (UPSTASH_URL && UPSTASH_TOKEN) {
+  try {
+    redis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
+  } catch (e) {
+    console.warn("[lib/telegram] failed to init Upstash Redis client:", e);
+    redis = null;
+  }
+}
 
 export function generateSessionId(prefix = "s") {
   return prefix + crypto.randomBytes(6).toString("hex");
 }
 
-const DEFAULT_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
-const DEFAULT_ADMIN_CHAT = process.env.TELEGRAM_ADMIN_CHAT_ID || "";
-
-function escapeHtml(s: string) {
+function escapeHtml(s?: string) {
   return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** robust broadcast helper */
-async function safeBroadcastSessionUpdate(sessionId: string, payload: any) {
+/** Basic heuristic for escalation (tweak as needed) */
+export function shouldEscalateToHuman(message: string): boolean {
+  if (!message) return false;
+  const text = message.toLowerCase();
+  const triggers = [
+    "talk to someone",
+    "talk to the owner",
+    "talk to owner",
+    "can i talk",
+    "human",
+    "live chat",
+    "talk to",
+    "connect me",
+    "i want to talk",
+    "need to talk",
+  ];
+  return triggers.some((t) => text.includes(t));
+}
+
+/**
+ * Persist session to Upstash Redis (best-effort) and to in-memory map.
+ */
+export async function saveSession(session: any) {
   try {
-    if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+    sessions.set(session.sessionId, session);
+    if (redis) {
       try {
-        globalThis.__broadcastSessionUpdate__(sessionId, payload);
-        console.log("[lib/telegram] broadcast via globalThis", sessionId);
-        return true;
-      } catch (e) {
-        console.warn("[lib/telegram] global broadcast threw:", e);
+        await redis.set(`livechat:session:${session.sessionId}`, JSON.stringify(session));
+      } catch (err) {
+        console.warn("[lib/telegram] redis set in saveSession failed:", err);
       }
-    } 
-    
-    console.warn("[lib/telegram] broadcast unavailable for", sessionId);
-    return false;
+    }
+    // Also broadcast session creation/update if a broadcast hook exists
+    try {
+      if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+        globalThis.__broadcastSessionUpdate__(session.sessionId, { type: "session_saved", session });
+      }
+    } catch (e) { /* non-fatal */ }
+    return true;
   } catch (err) {
-    console.error("[lib/telegram] safeBroadcast unexpected", err);
+    console.warn("[lib/telegram] saveSession failed:", err);
     return false;
   }
 }
 
-/** Basic heuristic exported for chat escalation */
-export function shouldEscalateToHuman(message: string): boolean {
-  if (!message || typeof message !== "string") return false;
-  const s = message.toLowerCase();
-  const patterns = [
-    /\b(can i talk|can we talk|want to talk|talk to (someone|owner|expert|admin))\b/,
-    /\b(contact (the )?(owner|expert|admin)|contact someone)\b/,
-    /\b(human|real person|representative|support|agent|owner|expert)\b/,
-    /\b(help me|i need help|i want to talk)\b/,
-  ];
-  return patterns.some((re) => re.test(s));
+export async function deleteSession(sessionId: string) {
+  try {
+    sessions.delete(sessionId);
+    if (redis) {
+      try {
+        await redis.del(`livechat:session:${sessionId}`);
+      } catch (err) {
+        console.warn("[lib/telegram] redis del failed:", err);
+      }
+    }
+    // broadcast deletion if needed
+    try {
+      if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+        globalThis.__broadcastSessionUpdate__(sessionId, { type: "session_deleted", sessionId });
+      }
+    } catch (e) {}
+    return true;
+  } catch (err) {
+    console.warn("[lib/telegram] deleteSession failed:", err);
+    return false;
+  }
 }
+
+export async function getSession(sessionId: string) {
+  // Try in-memory first
+  const s = sessions.get(sessionId);
+  if (s) return s;
+  // Try redis fallback
+  if (redis) {
+    try {
+      const txt = (await redis.get(`livechat:session:${sessionId}`)) as string | null;
+      if (txt) {
+        const parsed = JSON.parse(txt);
+        sessions.set(sessionId, parsed);
+        return parsed;
+      }
+    } catch (err) {
+      console.warn("[lib/telegram] redis getSession failed:", err);
+    }
+  }
+  return null;
+}
+
+/** Telegram notifier */
+const DEFAULT_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || "") as string;
+const DEFAULT_ADMIN_CHAT = (process.env.TELEGRAM_ADMIN_CHAT_ID || "") as string;
 
 export class TelegramNotifier {
   botToken: string;
   defaultChatId: string;
+
   constructor(botToken?: string, defaultChatId?: string) {
     this.botToken = botToken || DEFAULT_BOT_TOKEN;
     this.defaultChatId = defaultChatId || DEFAULT_ADMIN_CHAT;
-    if (!this.botToken) console.warn("TelegramNotifier: TELEGRAM_BOT_TOKEN not set");
+    if (!this.botToken) console.warn("[TelegramNotifier] TELEGRAM_BOT_TOKEN not set");
   }
 
-  private async safeFetchJson(url: string, body: any) {
+  async sendMessage(chatId: string, text: string, options?: { parse_mode?: string; reply_markup?: any }) {
+    const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
+    const body: any = { chat_id: chatId, text };
+    if (options?.parse_mode) body.parse_mode = options.parse_mode;
+    if (options?.reply_markup) body.reply_markup = options.reply_markup;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const txt = await res.text().catch(() => "");
-    let json: any = null;
-    try { json = JSON.parse(txt); } catch { json = txt; }
-    return { ok: res.ok, status: res.status, body: json };
-  }
-
-  async sendMessage(chatId: string, text: string, extra?: any) {
-    const url = `https://api.telegram.org/bot${this.botToken}/sendMessage`;
-    const payload: any = { chat_id: chatId, text, parse_mode: "HTML", ...extra };
-    const { ok, body } = await this.safeFetchJson(url, payload);
-    if (!ok || !body?.ok) {
-      const err = body?.description || `HTTP ${body?.status || "?"}`;
-      throw new Error(`Telegram sendMessage failed: ${err}`);
+    try {
+      const json = JSON.parse(txt);
+      if (!res.ok || !json?.ok) {
+        throw new Error(json?.description || `HTTP ${res.status}`);
+      }
+      return json;
+    } catch (err) {
+      throw new Error(`Telegram sendMessage failed: ${String(err)} - raw: ${txt}`);
     }
-    return body;
   }
 
-  /** Create live chat session + notify owner */
-  async sendLiveChatRequest(opts: { visitorName?: string; message: string; pageUrl?: string; email?: string; sessionId?: string; adminChatId?: string }) {
+  /**
+   * Creates session, persists it, sends Telegram notification with inline keyboard.
+   * Returns: { success: boolean, sessionId, messageId?, error? }
+   */
+  async sendLiveChatRequest(opts: {
+    visitorName?: string;
+    message: string;
+    pageUrl?: string;
+    email?: string;
+    sessionId?: string;
+    adminChatId?: string;
+  }) {
     const adminChatId = opts.adminChatId || this.defaultChatId;
     if (!adminChatId) return { success: false, error: "No admin chat id" };
     const sessionId = opts.sessionId || generateSessionId();
@@ -101,8 +184,8 @@ export class TelegramNotifier {
     const session = {
       sessionId,
       visitorName: opts.visitorName || "Website Visitor",
-      email: opts.email,
-      pageUrl: opts.pageUrl,
+      email: opts.email || "not-provided",
+      pageUrl: opts.pageUrl || "unknown",
       message: opts.message,
       createdAt: now,
       accepted: false,
@@ -111,120 +194,52 @@ export class TelegramNotifier {
       userMessages: [],
       lastActivityAt: now,
     };
-    sessions.set(sessionId, session);
-    console.log("[TelegramNotifier] Created session", sessionId);
 
-    const text = `📩 <b>Live chat request</b>\n\nFrom: <b>${escapeHtml(session.visitorName)}</b>\nEmail: ${escapeHtml(session.email || "not provided")}\nPage: ${escapeHtml(session.pageUrl || "unknown")}\n\nMessage:\n${escapeHtml(session.message)}\n\nSession ID: <code>${sessionId}</code>`;
-    const keyboard = { inline_keyboard: [[{ text: "Join Chat", callback_data: `join:${sessionId}` }, { text: "Away / Not now", callback_data: `away:${sessionId}` }]] };
-
+    // Save session (in-memory and optional redis)
     try {
-      const { ok, body } = await this.safeFetchJson(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
-        chat_id: adminChatId, text, parse_mode: "HTML", reply_markup: keyboard
-      });
-      if (!ok || !body?.ok) {
-        sessions.delete(sessionId);
-        const err = body?.description || `HTTP ${body?.status || "?"}`;
-        console.error('[TelegramNotifier] sendLiveChatRequest failed:', err);
-        return { success: false, error: err };
-      }
-      if (body?.result?.message_id) {
-        msgIdToSessionMap[String(body.result.message_id)] = sessionId;
-        console.log('[TelegramNotifier] mapped message_id -> session', body.result.message_id, sessionId);
-      }
-      // broadcast new session
-      await safeBroadcastSessionUpdate(sessionId, session).catch(() => {});
-      console.log('[TelegramNotifier] Notification sent to admin:', adminChatId, 'message_id:', body.result?.message_id);
-      return { success: true, sessionId, messageId: body.result?.message_id };
-    } catch (err: any) {
-      sessions.delete(sessionId);
-      console.error('[TelegramNotifier] sendLiveChatRequest error:', err?.message || err);
-      return { success: false, error: err?.message || String(err) };
-    }
-  }
-
-  async handleCallbackQuery(callback: { id: string; from: { id: number; first_name?: string; last_name?: string; username?: string }; data: string; message?: { chat: { id: number }; message_id?: number } }) {
-    try {
-      console.log('[TelegramNotifier] handleCallbackQuery data=', callback.data);
-      const [action, sessionId] = String(callback.data || "").split(':');
-      if (!sessionId) { await this.answerCallback(callback.id, 'Invalid session data'); return { handled: false }; }
-      const session = sessions.get(sessionId);
-      if (!session) { await this.answerCallback(callback.id, 'Session not found or expired.'); return { handled: true }; }
-
-      if (action === 'join') {
-        session.accepted = true;
-        session.acceptedBy = {
-          telegramChatId: String(callback.from.id),
-          responderName: `${callback.from.first_name || ''} ${callback.from.last_name || ''}`.trim() || callback.from.username,
-          acceptedAt: Date.now(),
-        };
-        session.lastActivityAt = Date.now();
-        sessions.set(sessionId, session);
-        console.log('[TelegramNotifier] session ACCEPTED', sessionId, 'by', session.acceptedBy);
-
-        // broadcast accepted
-        await safeBroadcastSessionUpdate(sessionId, { ...session, _meta: { event: "accepted" } }).catch(() => {});
-
-        await this.answerCallback(callback.id, 'You joined the visitor chat. Send messages in this Telegram chat to communicate.');
-
-        // send force_reply follow-up and map message id
-        try {
-          const { ok, body } = await this.safeFetchJson(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
-            chat_id: callback.from.id, text: `✅ You joined session <code>${sessionId}</code>. Reply to this message to send text to the visitor.`, parse_mode: 'HTML', reply_markup: { force_reply: true }
-          });
-          if (ok && body?.result?.message_id) {
-            msgIdToSessionMap[String(body.result.message_id)] = sessionId;
-            console.log('[TelegramNotifier] mapped follow-up message_id -> session', body.result.message_id, sessionId);
-          }
-        } catch (e) {
-          console.warn('[TelegramNotifier] follow-up force_reply failed', e);
-        }
-
-        // send a persistent "End Chat" button message to owner
-        try {
-          const kb = { inline_keyboard: [[{ text: 'End Chat', callback_data: `end:${sessionId}` }]] };
-          const { ok, body } = await this.safeFetchJson(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
-            chat_id: callback.from.id, text: `🔴 Controls for session <code>${sessionId}</code>`, parse_mode: 'HTML', reply_markup: kb
-          });
-          if (ok && body?.result?.message_id) {
-            // map this control message so owner replies can be correlated if needed
-            msgIdToSessionMap[String(body.result.message_id)] = sessionId;
-            console.log('[TelegramNotifier] mapped control message_id -> session', body.result.message_id, sessionId);
-          }
-        } catch (e) {
-          console.warn('[TelegramNotifier] End Chat button send failed', e);
-        }
-
-        return { handled: true, session };
-      }
-
-      if (action === 'away' || action === 'end') {
-        session.accepted = false;
-        session.endedAt = Date.now();
-        session.endedBy = {
-          telegramChatId: String(callback.from.id),
-          responderName: `${callback.from.first_name || ''} ${callback.from.last_name || ''}`.trim() || callback.from.username,
-        };
-        session.lastActivityAt = Date.now();
-        sessions.set(sessionId, session);
-        
-        // Broadcast end/away
-        await safeBroadcastSessionUpdate(sessionId, { ...session, _meta: { event: action === 'end' ? 'ended' : 'away' } }).catch(() => {});
-        
-        // Notify visitor when owner explicitly ends the chat
-        if (action === 'end') {
-          await this.notifyVisitorSessionEnded(sessionId);
-        }
-        
-        console.log('[TelegramNotifier] session marked', action, sessionId);
-        await this.answerCallback(callback.id, action === 'end' ? "Chat ended — visitor will be notified." : "Marked as away — visitor will be notified.");
-        return { handled: true };
-      }
-
-      await this.answerCallback(callback.id, 'Unknown action');
-      return { handled: false };
+      await saveSession(session);
     } catch (err) {
-      console.error('[TelegramNotifier] handleCallbackQuery error', err);
-      return { handled: false, error: err };
+      console.warn("[TelegramNotifier] saveSession failed:", err);
+    }
+
+    const text = [
+      "📩 <b>Live chat request</b>",
+      "",
+      `From: <b>${escapeHtml(session.visitorName)}</b>`,
+      `Email: ${escapeHtml(session.email || "not provided")}`,
+      `Page: ${escapeHtml(session.pageUrl || "unknown")}`,
+      "",
+      "Message:",
+      escapeHtml(session.message),
+      "",
+      `Session ID: <code>${sessionId}</code>`,
+    ].join("\n");
+
+    const keyboard = {
+      inline_keyboard: [
+        [{ text: "Join Chat", callback_data: `join:${sessionId}` }, { text: "Away / Not now", callback_data: `away:${sessionId}` }],
+      ],
+    };
+
+    try {
+      const json = await this.sendMessage(adminChatId, text, { parse_mode: "HTML", reply_markup: keyboard });
+      const messageId = json?.result?.message_id;
+      if (messageId) {
+        msgIdToSessionMap[String(messageId)] = sessionId;
+        if (redis) {
+          try {
+            await redis.set(`livechat:msg2sess:${messageId}`, sessionId);
+          } catch (e) {
+            console.warn("[TelegramNotifier] persist msg2sess failed:", e);
+          }
+        }
+      }
+      console.log("[TelegramNotifier] Notification sent to admin:", adminChatId, "message_id:", messageId);
+      return { success: true, sessionId, messageId };
+    } catch (err: any) {
+      try { await deleteSession(sessionId); } catch (_) {}
+      console.error("[TelegramNotifier] sendLiveChatRequest error:", err?.message || err);
+      return { success: false, error: err?.message || String(err) };
     }
   }
 
@@ -232,89 +247,179 @@ export class TelegramNotifier {
     try {
       const url = `https://api.telegram.org/bot${this.botToken}/answerCallbackQuery`;
       await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ callback_query_id: callbackQueryId, text, show_alert: false }),
       });
     } catch (err) {
-      console.warn('[TelegramNotifier] answerCallback failed:', err);
+      console.warn("[TelegramNotifier] answerCallback failed:", err);
     }
   }
 
+  /**
+   * Handle inline button clicks from the admin (join / away)
+   */
+  async handleCallbackQuery(callback: {
+    id: string;
+    from: { id: number; first_name?: string; last_name?: string; username?: string };
+    data: string;
+    message?: { chat: { id: number }; message_id?: number };
+  }) {
+    try {
+      console.log("[TelegramNotifier] handleCallbackQuery data=", callback.data);
+      const [action, sessionId] = String(callback.data || "").split(":");
+      if (!sessionId) {
+        await this.answerCallback(callback.id, "Invalid session data");
+        return { handled: false };
+      }
+      const session = await getSession(sessionId);
+      if (!session) {
+        console.warn("[TelegramNotifier] session not found for callback:", sessionId);
+        await this.answerCallback(callback.id, "Session not found or expired.");
+        return { handled: true };
+      }
+
+      if (action === "join") {
+        session.accepted = true;
+        session.acceptedBy = {
+          telegramChatId: String(callback.from.id),
+          responderName: `${callback.from.first_name || ""} ${callback.from.last_name || ""}`.trim() || callback.from.username,
+          acceptedAt: Date.now(),
+        };
+        session.lastActivityAt = Date.now();
+        await saveSession(session);
+
+        await this.answerCallback(callback.id, "You joined the visitor chat. Send messages in this Telegram chat to communicate.");
+
+        // send a force-reply follow-up so owner can reply and we map reply_to -> session
+        try {
+          const followUp = await this.sendMessage(String(callback.from.id), `✅ You joined session <code>${sessionId}</code>. Please reply to this message to send text to the visitor.`, { parse_mode: "HTML", reply_markup: { force_reply: true } });
+          const messageId = followUp?.result?.message_id;
+          if (messageId) {
+            msgIdToSessionMap[String(messageId)] = sessionId;
+            if (redis) {
+              try { await redis.set(`livechat:msg2sess:${messageId}`, sessionId); } catch (e) { /* ignore */ }
+            }
+            console.log("[TelegramNotifier] mapped follow-up message_id -> session", messageId, sessionId);
+          }
+        } catch (e) {
+          console.warn("[TelegramNotifier] failed to send follow-up force_reply", e);
+        }
+
+        // notify listeners via global broadcast hook
+        try {
+          if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+            globalThis.__broadcastSessionUpdate__(sessionId, { type: "accepted", session, _meta: { event: "accepted" } });
+          }
+        } catch (e) {}
+        return { handled: true, session };
+      }
+
+      if (action === "away") {
+        session.accepted = false;
+        session.lastActivityAt = Date.now();
+        await saveSession(session);
+        try {
+          if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+            globalThis.__broadcastSessionUpdate__(sessionId, { type: "accepted", session, _meta: { event: "away" } });
+          }
+        } catch (e) {}
+        await this.answerCallback(callback.id, "Marked as away — visitor will be notified.");
+        return { handled: true };
+      }
+
+      await this.answerCallback(callback.id, "Unknown action");
+      return { handled: false };
+    } catch (err) {
+      console.error("[TelegramNotifier] handleCallbackQuery error", err);
+      return { handled: false, error: err };
+    }
+  }
+
+  /**
+   * Append an owner message to the most relevant session for this owner.
+   * If replyToMessageId is provided and maps to a session, use that mapping.
+   */
   appendOwnerMessageToSession(ownerTelegramChatId: string, text: string, replyToMessageId?: number | null) {
     try {
       const ownerIdStr = String(ownerTelegramChatId);
       const now = Date.now();
-      const RECENT_MS = 15 * 60 * 1000;
-
+      const RECENT_MS = 15 * 60 * 1000; // 15 minutes
       if (replyToMessageId) {
         const mapped = msgIdToSessionMap[String(replyToMessageId)];
         if (mapped) {
-          const sess = sessions.get(mapped);
-          if (sess) {
-            sess.ownerMessages = sess.ownerMessages || [];
-            sess.ownerMessages.push({ text, at: now });
-            sess.lastActivityAt = now;
-            sessions.set(mapped, sess);
-            safeBroadcastSessionUpdate(mapped, sess).catch(() => {});
-            console.log('[TelegramNotifier] appended owner message via reply_to mapping to session', mapped);
-            return sess;
+          const mappedSession = sessions.get(mapped);
+          if (mappedSession) {
+            mappedSession.ownerMessages = mappedSession.ownerMessages || [];
+            mappedSession.ownerMessages.push({ text, at: now });
+            mappedSession.lastActivityAt = now;
+            sessions.set(mapped, mappedSession);
+            if (redis) {
+              try { redis.set(`livechat:session:${mapped}`, JSON.stringify(mappedSession)); } catch (_) {}
+            }
+            if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+              globalThis.__broadcastSessionUpdate__(mapped, { type: "owner_message", session: mappedSession });
+            }
+            console.log("[TelegramNotifier] appended owner message via reply_to mapping to session", mapped);
+            return mappedSession;
           }
         }
       }
 
-      const acceptedSessions = Array.from(sessions.values()).filter((s: any) => s.acceptedBy?.telegramChatId === ownerIdStr);
-      if (acceptedSessions.length === 0) { console.warn('[TelegramNotifier] no accepted session for owner', ownerIdStr); return null; }
+      // find sessions accepted by this owner
+      const acceptedSessions: any[] = Array.from(sessions.values()).filter((s: any) => s.acceptedBy?.telegramChatId === ownerIdStr);
+      if (acceptedSessions.length === 0) {
+        console.warn("[TelegramNotifier] no accepted session found for owner", ownerIdStr);
+        return null;
+      }
 
       const recentCandidates = acceptedSessions.filter((s) => {
         const last = s.lastActivityAt || s.acceptedBy?.acceptedAt || s.createdAt || 0;
         return now - last <= RECENT_MS;
       });
 
-      let target = recentCandidates.length ? recentCandidates.sort((a,b)=> (b.lastActivityAt||b.acceptedBy?.acceptedAt||0)-(a.lastActivityAt||a.acceptedBy?.acceptedAt||0))[0] : acceptedSessions.sort((a,b)=> (b.acceptedBy?.acceptedAt||0)-(a.acceptedBy?.acceptedAt||0))[0];
+      let targetSession: any;
+      if (recentCandidates.length > 0) {
+        recentCandidates.sort((a, b) => (b.lastActivityAt || b.acceptedBy?.acceptedAt || 0) - (a.lastActivityAt || a.acceptedBy?.acceptedAt || 0));
+        targetSession = recentCandidates[0];
+      } else {
+        acceptedSessions.sort((a, b) => (b.acceptedBy?.acceptedAt || 0) - (a.acceptedBy?.acceptedAt || 0));
+        targetSession = acceptedSessions[0];
+      }
 
-      target.ownerMessages = target.ownerMessages || [];
-      target.ownerMessages.push({ text, at: now });
-      target.lastActivityAt = now;
-      sessions.set(target.sessionId, target);
-      safeBroadcastSessionUpdate(target.sessionId, target).catch(() => {});
-      console.log('[TelegramNotifier] appended owner message to session', target.sessionId);
-      return target;
+      targetSession.ownerMessages = targetSession.ownerMessages || [];
+      targetSession.ownerMessages.push({ text, at: now });
+      targetSession.lastActivityAt = now;
+      sessions.set(targetSession.sessionId, targetSession);
+      if (redis) {
+        try { redis.set(`livechat:session:${targetSession.sessionId}`, JSON.stringify(targetSession)); } catch (_) {}
+      }
+
+      if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+        globalThis.__broadcastSessionUpdate__(targetSession.sessionId, { type: "owner_message", session: targetSession });
+      }
+
+      console.log("[TelegramNotifier] appended owner message to session", targetSession.sessionId);
+      return targetSession;
     } catch (err) {
-      console.error('[TelegramNotifier] appendOwnerMessageToSession error', err);
+      console.error("[TelegramNotifier] appendOwnerMessageToSession error", err);
       return null;
     }
   }
 
+  /**
+   * Expose a getSession method for other code to use
+   */
   getSession(sessionId: string) {
     return sessions.get(sessionId) || null;
   }
-
-  // Add this method to the TelegramNotifier class in lib/telegram.ts
-  async notifyVisitorSessionEnded(sessionId: string) {
-    try {
-      const session = sessions.get(sessionId);
-      if (!session) {
-        console.warn('[TelegramNotifier] Cannot notify visitor - session not found:', sessionId);
-        return false;
-      }
-
-      // Broadcast a special end session event to all connected clients
-      await safeBroadcastSessionUpdate(sessionId, { 
-        ...session, 
-        _meta: { 
-          event: "session_ended",
-          endedAt: Date.now(),
-          endedBy: session.endedBy,
-          message: "The expert has ended the live chat session. You can continue chatting with the AI assistant."
-        } 
-      });
-      
-      console.log('[TelegramNotifier] Notified visitor that session ended:', sessionId);
-      return true;
-    } catch (error) {
-      console.error('[TelegramNotifier] Error notifying visitor:', error);
-      return false;
-    }
-  }
 }
+
+/** re-export helpers for convenience */
+/* export {
+  generateSessionId,
+  shouldEscalateToHuman,
+  saveSession,
+  deleteSession,
+  getSession,
+}; */
