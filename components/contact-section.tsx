@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Mail, Phone, MapPin, Send, Linkedin, CheckCircle, AlertCircle } from "lucide-react"
-import { sendEmail } from "@/app/actions/send-email"
+// import { sendEmail } from "@/app/actions/send-email"
 
 /**
  * NOTE:
@@ -85,7 +85,7 @@ export function ContactSection() {
     } catch (err) {
       setSubmitStatus({
         type: "error",
-        message: "An unexpected error occurred. Please try emailing directly.",
+        message: "Unexpected error. Please call me +251-983-34-20-60.",
       });
     } finally {
       setIsLoading(false);
@@ -113,12 +113,12 @@ export function ContactSection() {
       icon: Linkedin,
       title: "LinkedIn",
       value: "Connect on LinkedIn",
-      href: "https://www.linkedin.com/in/abel-mekonnen-055a93147",
+      href: "https://www.linkedin.com/in/abel-mekonnen-380a08102",
     },
     {
       icon: MapPin,
       title: "Location",
-      value: "Available Worldwide",
+      value: "Addis Ababa, Ethiopia",
       href: "Addis Ababa, Ethiopia",
     },
   ];
@@ -178,12 +178,12 @@ export function ContactSection() {
             {/* Contact Form */}
             <Card>
               <CardHeader>
-                <CardTitle>Send a Message</CardTitle>
+                <CardTitle className="mt-6">Send a Message</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="border rounded border-black/20">
                       <Input
                         name="name"
                         placeholder="Your Name"
@@ -193,7 +193,7 @@ export function ContactSection() {
                         disabled={isLoading}
                       />
                     </div>
-                    <div>
+                    <div className="border rounded border-black/20">
                       <Input
                         name="email"
                         type="email"
@@ -205,7 +205,7 @@ export function ContactSection() {
                       />
                     </div>
                   </div>
-                  <div>
+                  <div className="border rounded border-black/20 mt-4">
                     <Input
                       name="company"
                       placeholder="Company/Organization"
@@ -228,7 +228,7 @@ export function ContactSection() {
                     />
                   </div>
 
-                  <div>
+                  <div className="border rounded border-black/20 mt-8">
                     <Textarea
                       name="message"
                       placeholder="Tell me about your project requirements..."

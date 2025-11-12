@@ -38,14 +38,6 @@ export function ServicesSection() {
 
   const testimonials = [
     {
-      name: "DEJENE WOLDEMARIAM",
-      title: "Environmentalist",
-      contact: "wwww.tsenvironment.com",
-      description: 
-        " ''His multidisciplinary skills and precise professional recommendations consistently enhanced our ESIA and RAP studies. An exceptional report writer.'' ",
-      image: "/Dejene-1.png",
-    },
-    {
       name: "SAMUEL HAILU YIRDAW",
       title: "Environmentalist",
       contact: "wwww.tsenvironment.com",
@@ -54,17 +46,68 @@ export function ServicesSection() {
       image: "/Samuel-1.jpeg",
     },
     {
-      name: "MELSEW SHANKO",
-      title: "Livelihood Specialist",
-      contact: "wwww.tsenvironment.com",
+      name: "DESSIE NEDAW (DR.)",
+      title: "Hydrologist",
+      contact: "dessienedaw@yahoo.com",
       description:
-        " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
-      image: "/testimonial-no-photo-2.png",
+        " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
+      image: "/testimonial-no-photo-3.jpg",
+    },
+
+
+    {
+      name: "LYN BROWN",
+      title: "Environmental Consultant",
+      contact: "lyn89577@gmail.com",
+      description:
+        " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
+      image: "/Lyn-1.jpg",
+    },
+
+
+    {
+      name: "DEJENE WOLDEMARIAM",
+      title: "Environmentalist",
+      contact: "dejenewm@gmail.com",
+      description: 
+        " ''His multidisciplinary skills and precise professional recommendations consistently enhanced our ESIA and RAP studies. An exceptional report writer.'' ",
+      image: "/testimonial-no-photo-3.jpg",
+    },
+
+
+
+    {
+      name: "BELINDA RIDLEY",
+      title: "Social Performance Advisory Head",
+      contact: "belinda@ibisconsulting.com",
+      description:
+        " ''A quick learner who adapts seamlessly. His expertise was vital for our complex ESIA, Audit, and ESG projects in the extractive industries.'' ",
+      image: "/belinda-1.jpg",
     },
     {
+      name: "AREBO SAMBI",
+      title: "Environmentalist",
+      contact: "essdconsult@gmail.com",
+      description:
+        " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
+      image: "/testimonial-no-photo-3.jpg",
+    },
+
+
+    {
+      name: "LELISA TEMESGEN",
+      title: "Socio-Economy Expert",
+      contact: "essdconsult@gmail.com",
+      description:
+        " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
+      image: "/lelisa-1.jpg",
+    },
+
+
+    {
       name: "DAWIT DAGNE (DR.)",
-      title: "Fishery Specialist",
-      contact: "wwww.tsenvironment.com",
+      title: "Social Expert",
+      contact: "dave14da@gmail.com",
       description:
         " ''A reliable expert who delivers high-quality reports on time. His clear communication ensures smooth project execution from start to finish.'' ",
       image: "/Dawit-1.jpeg",
@@ -72,31 +115,36 @@ export function ServicesSection() {
     {
       name: "SEMUNIGUS AYALEW",
       title: "GIS & Land Use Expert",
-      contact: "wwww.tsenvironment.com",
+      contact: "semunigus2011@gmail.com",
       description:
         " ''His advanced GIS skills in data interpretation and visualization, paired with his ability to quickly master new challenges, are truly impressive.'' ",
       image: "/Semu-1.jpg",
     },
+
+
     {
-      name: "MEKUANINT KEBEDE",
-      title: "Senior Environmentalist",
-      contact: "wwww.tsenvironment.com",
+      name: "JAN TEN KATE",
+      title: "Noise Consultant",
+      contact: "jjltenkate@gmail.com",
+      description:
+        " ''His advanced GIS skills in data interpretation and visualization, paired with his ability to quickly master new challenges, are truly impressive.'' ",
+      image: "/Jan-1.jpg",
+    },
+
+
+
+    {
+      name: "MEQUANINT TENAW",
+      title: "Environmental & SS Specialist",
+      contact: "mequanntt@yahoo.com",
       description:
         " ''His talent for systematic data collection, management, and clear presentation was a key asset to our ESIA studies. A highly effective communicator.'' ",
-      image: "/testimonial-no-photo-2.png",
-    },
-    {
-      name: "DESIE NADEW (DR.)",
-      title: "Hydrologist",
-      contact: "wwww.tsenvironment.com",
-      description:
-        " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
-      image: "/testimonial-no-photo-2.png",
+      image: "/Mekuanent-1.jpg",
     },
     {
       name: "ZEWDU ALEBACHEW",
       title: "GIS & RS Expert",
-      contact: "wwww.tsenvironment.com",
+      contact: "zedoethiopi@gmail.com",
       description:
         " ''He leverages cutting-edge GIS, remote sensing, and digital tools to deliver precise impact analysis and efficient on-field work solutions.'' ",
       image: "/Zewdu-1.png",

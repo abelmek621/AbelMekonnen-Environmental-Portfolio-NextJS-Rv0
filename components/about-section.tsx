@@ -5,12 +5,12 @@ import { Download } from "lucide-react"
 
 export function AboutSection() {
   const achievements = [
-    "10+ Years Experience",
-    "Environmental Consultancy",
     "Multi-disciplinary Expert",
     "100+ ESIA Projects",
     "Senior Level License",
-    "Global Clients"
+    "Global Clients",
+    "10+ Years Experience",
+    "Environmental Consultancy"
   ]
   const license = [
     {

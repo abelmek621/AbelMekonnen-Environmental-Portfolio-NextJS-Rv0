@@ -8,7 +8,7 @@ import { ArrowDown, Mail } from "lucide-react"
 const IMAGES = [
   "images/hero-8.png",
   "images/hero-9.png",
-  "images/hero-7.png",
+  "images/hero-10.png",
   // add more images here if you want a longer slideshow
 ];
 
