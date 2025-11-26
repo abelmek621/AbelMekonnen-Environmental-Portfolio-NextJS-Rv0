@@ -6,9 +6,15 @@ import { Button } from "@/components/ui/button"
 import { ArrowDown, Mail } from "lucide-react"
 
 const IMAGES = [
-  "images/hero-8.png",
-  "images/hero-9.png",
-  "images/hero-10.png",
+  "/images/hero-images/hero-1.jpg",
+  "/images/hero-images/hero-2.jpg",
+  "/images/hero-images/hero-3.jpg",
+  "/images/hero-images/hero-4.jpg",
+  "/images/hero-images/hero-5.jpg",
+  "/images/hero-images/hero-6.jpg",
+  "/images/hero-images/hero-7.jpg",
+  "/images/hero-images/hero-8.jpg",
+  "/images/hero-images/hero-19.png",
   // add more images here if you want a longer slideshow
 ];
 
@@ -18,7 +24,9 @@ export function HeroSection() {
   const rotateSeconds = 6; // seconds between slides
 
   useEffect(() => {
-    // Preload images
+    if (typeof window === "undefined") return;
+
+    // Preload images into the browser cache (non-blocking)
     IMAGES.forEach((src) => {
       const img = new Image(); 
       img.src = src;
@@ -36,18 +44,22 @@ export function HeroSection() {
     };
   }, []);
 
-  // Optional: allow manual prev/next (not shown in UI)
-  // const goTo = (i: number) => setIndex(((i % IMAGES.length) + IMAGES.length) % IMAGES.length);
+  // manual controls (optional)
+  const prev = () => setIndex((i) => (i - 1 + IMAGES.length) % IMAGES.length);
+  const next = () => setIndex((i) => (i + 1) % IMAGES.length);
+  const goTo = (i: number) => setIndex(((i % IMAGES.length) + IMAGES.length) % IMAGES.length);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
       {/* Background slideshow layers */}
       <div aria-hidden className="absolute inset-0 z-0">
-        {IMAGES.map((src, i) => (
+        {IMAGES.map((src, i) => {
+          const isActive = i === index;
+          return (
           <div
-            key={src}
+            key={src + i}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out transform-gpu ${
-              i === index ? "opacity-50 scale-100" : "opacity-0 scale-[1.03]"
+              isActive ? "opacity-60 scale-100 z-10" : "opacity-0 scale-[1.03] z-0"
             }`}
             // keep images out of accessibility tree
             aria-hidden
@@ -59,13 +71,16 @@ export function HeroSection() {
               fill
               sizes="(max-width: 1024px) 100vw, 1920px"
               className="object-cover object-center"
-              priority={i === 0} // prioritize first image
-              quality={85}
+              // eager-load the active slide, lazy-load the rest
+              loading={isActive ? "eager" : "lazy"}
+              quality={80}
+              priority={false}
             />
             {/* subtle overlay to keep text readable */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/20 pointer-events-none" />
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* Optional subtle pattern / texture (you can keep or remove) */}
@@ -85,7 +100,7 @@ export function HeroSection() {
             <span className="block text-primary mt-2">Expert Solutions</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-muted-foreground text-pretty mb-8 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-foreground text-balance text-prety mb-8 max-w-2xl mx-auto">
             Over 10 years of specialized experience in hydrology, air quality & noise assessment, and GIS & remote
             sensing. Delivering professional environmental consultancy services to firms and organizations worldwide.
           </p>
@@ -100,6 +115,28 @@ export function HeroSection() {
             <Button variant="outline" size="lg" className="text-lg px-8 py-3 bg-transparent" asChild>
               <a href="#portfolio">View My Work</a>
             </Button>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 mb-8">
+            {/* <button onClick={prev} aria-label="Previous slide" className="p-2 rounded-full bg-black/30 hover:bg-black/40">
+              ‹
+            </button> */}
+            <div className="flex items-center gap-2">
+              {/* slide indicators */}
+              {IMAGES.map((_, i) => (
+                <button
+                  key={`dot-${i}`}
+                  onClick={() => goTo(i)}
+                  aria-label={`Go to slide ${i + 1}`}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    i === index ? "scale-125 bg-white" : "bg-white/40"
+                  }`}
+                />
+              ))}
+            </div>
+            {/* <button onClick={next} aria-label="Next slide" className="p-2 rounded-full bg-black/30 hover:bg-black/40">
+              ›
+            </button> */}
           </div>
 
           <div className="animate-bounce">

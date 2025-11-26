@@ -27,7 +27,7 @@ interface ChatResult {
 function RotatingGlobe() {
   return (
     <Image
-      src="/globe-design-3.png"
+      src="/images/chatbot/globe-design-3.png"
       alt="Environmental Globe"
       width={62}
       height={62}

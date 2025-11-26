@@ -4,7 +4,9 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
+import 'leaflet/dist/leaflet.css'
 import "./globals.css"
+import ForceHomeOnLoad from "@/components/ForceHomeOnLoad"
 
 export const metadata: Metadata = {
   title: "Abel Mekonnen | Environmental Consultant",
@@ -13,10 +15,10 @@ export const metadata: Metadata = {
   // generator: "v0.app",
   icons: {
     icon: [
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" }, 
+      { url: "/images/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/images/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/images/favicon/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/images/favicon/android-chrome-512x512.png", sizes: "512x512", type: "image/png" }, 
       // { url: "/favicon.ico" },
     ],
     apple: "/apple-touch-icon.png",
@@ -56,6 +58,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+        <ForceHomeOnLoad />
         <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
       </body>

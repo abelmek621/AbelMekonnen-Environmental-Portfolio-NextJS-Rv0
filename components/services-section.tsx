@@ -43,7 +43,7 @@ export function ServicesSection() {
       contact: "wwww.tsenvironment.com",
       description:
         " ''A quick learner who adapts seamlessly. His expertise was vital for our complex ESIA, Audit, and ESG projects in the extractive industries.'' ",
-      image: "/Samuel-1.jpeg",
+      image: "/images/testimonials-pics/Samuel-1.jpeg",
     },
     {
       name: "DESSIE NEDAW (DR.)",
@@ -51,38 +51,31 @@ export function ServicesSection() {
       contact: "dessienedaw@yahoo.com",
       description:
         " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
-      image: "/testimonial-no-photo-3.jpg",
+      image: "/images/testimonials-pics/testimonial-no-photo-3.jpg",
     },
-
-
     {
       name: "LYN BROWN",
       title: "Environmental Consultant",
       contact: "lyn89577@gmail.com",
       description:
-        " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
-      image: "/Lyn-1.jpg",
+        " ''His deep hydrological expertise provided the critical analysis needed for Projects. He transforms complex field data into actionable, compliant solutions.'' ",
+      image: "/images/testimonials-pics/Lyn-1.jpg",
     },
-
-
     {
       name: "DEJENE WOLDEMARIAM",
       title: "Environmentalist",
       contact: "dejenewm@gmail.com",
       description: 
         " ''His multidisciplinary skills and precise professional recommendations consistently enhanced our ESIA and RAP studies. An exceptional report writer.'' ",
-      image: "/testimonial-no-photo-3.jpg",
+      image: "/images/testimonials-pics/testimonial-no-photo-3.jpg",
     },
-
-
-
     {
       name: "BELINDA RIDLEY",
       title: "Social Performance Advisory Head",
       contact: "belinda@ibisconsulting.com",
       description:
-        " ''A quick learner who adapts seamlessly. His expertise was vital for our complex ESIA, Audit, and ESG projects in the extractive industries.'' ",
-      image: "/belinda-1.jpg",
+        " ''He has a exceptional ability to navigate complex environmental regulations. His work ensure compliance & builds foundation for sustainable project.'' ",
+      image: "/images/testimonials-pics/belinda-1.jpg",
     },
     {
       name: "AREBO SAMBI",
@@ -90,27 +83,23 @@ export function ServicesSection() {
       contact: "essdconsult@gmail.com",
       description:
         " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
-      image: "/testimonial-no-photo-3.jpg",
+      image: "/images/testimonials-pics/testimonial-no-photo-3.jpg",
     },
-
-
     {
       name: "LELISA TEMESGEN",
       title: "Socio-Economy Expert",
       contact: "essdconsult@gmail.com",
       description:
-        " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
-      image: "/lelisa-1.jpg",
+        " ''A true expert whose knowledge sets him apart. He is a go-to person for complex challenges and provides invaluable guidance.'' ",
+      image: "/images/testimonials-pics/lelisa-1.jpg",
     },
-
-
     {
       name: "DAWIT DAGNE (DR.)",
       title: "Social Expert",
       contact: "dave14da@gmail.com",
       description:
         " ''A reliable expert who delivers high-quality reports on time. His clear communication ensures smooth project execution from start to finish.'' ",
-      image: "/Dawit-1.jpeg",
+      image: "/images/testimonials-pics/Dawit-1.jpeg",
     },
     {
       name: "SEMUNIGUS AYALEW",
@@ -118,28 +107,23 @@ export function ServicesSection() {
       contact: "semunigus2011@gmail.com",
       description:
         " ''His advanced GIS skills in data interpretation and visualization, paired with his ability to quickly master new challenges, are truly impressive.'' ",
-      image: "/Semu-1.jpg",
+      image: "/images/testimonials-pics/Semu-1.jpg",
     },
-
-
     {
       name: "JAN TEN KATE",
       title: "Noise Consultant",
       contact: "jjltenkate@gmail.com",
       description:
-        " ''His advanced GIS skills in data interpretation and visualization, paired with his ability to quickly master new challenges, are truly impressive.'' ",
-      image: "/Jan-1.jpg",
+        " ''His rigorous air quality and noise assessments are a standard for excellence. He consistently delivers models and reports that are technically sound.'' ",
+      image: "/images/testimonials-pics/Jan-1.jpg",
     },
-
-
-
     {
       name: "MEQUANINT TENAW",
       title: "Environmental & SS Specialist",
       contact: "mequanntt@yahoo.com",
       description:
         " ''His talent for systematic data collection, management, and clear presentation was a key asset to our ESIA studies. A highly effective communicator.'' ",
-      image: "/Mekuanent-1.jpg",
+      image: "/images/testimonials-pics/Mekuanent-1.jpg",
     },
     {
       name: "ZEWDU ALEBACHEW",
@@ -147,7 +131,7 @@ export function ServicesSection() {
       contact: "zedoethiopi@gmail.com",
       description:
         " ''He leverages cutting-edge GIS, remote sensing, and digital tools to deliver precise impact analysis and efficient on-field work solutions.'' ",
-      image: "/Zewdu-1.png",
+      image: "/images/testimonials-pics/Zewdu-1.png",
     },
   ]
 
@@ -274,20 +258,40 @@ export function ServicesSection() {
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
-            {/* Navigation Buttons */}
-            <button
-              onClick={prevSlide}
-              className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg border transition-all duration-200 hover:scale-110"
-            >
-              <ChevronLeft className="h-5 w-5 text-primary" />
-            </button>
             
-            <button
-              onClick={nextSlide}
-              className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg border transition-all duration-200 hover:scale-110"
-            >
-              <ChevronRight className="h-5 w-5 text-primary" />
-            </button>
+            <div className="hidden md:block">
+              {/* Navigation Buttons */}
+              <button
+                onClick={prevSlide}
+                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg border transition-all duration-200 hover:scale-110"
+              >
+                <ChevronLeft className="h-5 w-5 text-primary" />
+              </button>
+              
+              <button
+                onClick={nextSlide}
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg border transition-all duration-200 hover:scale-110"
+              >
+                <ChevronRight className="h-5 w-5 text-primary" />
+              </button>
+            </div>
+
+            {/* Navigation Buttons - mobile screens */}
+            {/* <div className="md:hidden">
+              <button
+                onClick={prevSlide}
+                className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg border transition-all duration-200 hover:scale-110"
+              >
+                <ChevronLeft className="h-3 w-3 text-primary" />
+              </button>
+              
+              <button
+                onClick={nextSlide}
+                className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-2 shadow-lg border transition-all duration-200 hover:scale-110"
+              >
+                <ChevronRight className="h-3 w-3 text-primary" />
+              </button>
+            </div> */}
 
             <div className="relative px-16">
               {/* Previous Card (Slides out to left) */}
@@ -332,7 +336,7 @@ export function ServicesSection() {
               </div>
 
               {/* Main 3 Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+              <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
                 {currentCards.map((testimonial, i) => (
                   <a
                     key={`${testimonial.name}-${i}-${currentIndex}`}
@@ -341,7 +345,7 @@ export function ServicesSection() {
                     rel="noopener noreferrer"
                     className="block group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                   >
-                    <Card className="pt-2 h-54 overflow-hidden border-1 border-primary/50 hover:border-secondary/70 transition-colors">
+                    <Card className="pt-2 h-60 overflow-hidden border-1 border-primary/50 hover:border-secondary/70 transition-colors">
                       <div className="relative">
                         <div className="flex flex-col items-end mr-6">
                           <img
@@ -360,7 +364,45 @@ export function ServicesSection() {
 
                       <CardContent className="space-y-1">
                         <p className="text-sm text-black leading-relaxed">{testimonial.description}</p>
-                        <p className="text-xs italic text-black leading-relaxed text-right">{testimonial.contact}</p>
+                        <p className="text-xs italic text-black leading-relaxed text-right mt-6">{testimonial.contact}</p>
+                      </CardContent>
+                    </Card>
+                  </a>
+                ))}
+              </div>
+
+              {/* Main 3 Cards Grid - mobile screen*/}
+              <div className="md:hidden grid grid-cols-1 gap-4 relative z-10">
+                {currentCards.map((testimonial, i) => (
+                  <a
+                    key={`${testimonial.name}-${i}-${currentIndex}`}
+                    // href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <Card className="pt-2 h-44 overflow-hidden border-1 border-primary/50 hover:border-secondary/70 transition-colors">
+                      <div className="relative">
+                        <div className="flex flex-col items-end mr-2">
+                          <img
+                            src={testimonial.image || "/placeholder.svg"}
+                            alt={testimonial.title}
+                            className="rounded-full w-10 h-10 object-cover"
+                          />
+                        </div>
+                        <div className="absolute top-3 left-3">
+                          <Badge className="bg-transparent text-black font-bold text-icon">
+                            {testimonial.name}
+                          </Badge>
+                          <p className="ml-3 text-xs text-black leading-relaxed">{testimonial.title}</p>
+                        </div>
+                      </div>
+
+                      <CardContent className="space-y-1">
+                        <p className="text-xs text-black leading-relaxed">{testimonial.description}</p>
+                        <div className="absolute botom-2 left-8">
+                          <p className="text-xs italic text-black leading-relaxed text-right mt-4">{testimonial.contact}</p>
+                        </div>
                       </CardContent>
                     </Card>
                   </a>
@@ -411,11 +453,11 @@ export function ServicesSection() {
             </div>
 
             {/* Auto-play status indicator (optional - for debugging) */}
-            {/* <div className="text-center mt-2">
+            <div className="md:hidden text-center mt-2">
               <span className="text-xs text-muted-foreground">
                 {isAutoPlayPaused ? "⏸️ Auto-slide paused" : "▶️ Auto-slide running"}
               </span>
-            </div> */}
+            </div> 
 
             {/* Slide Indicators */}
             <div className="flex justify-center mt-6 space-x-2">

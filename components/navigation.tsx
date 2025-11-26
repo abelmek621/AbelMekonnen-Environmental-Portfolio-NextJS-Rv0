@@ -13,7 +13,7 @@ export function Navigation() {
     {
       name: "Profile Picture",
       title: "Abel Mekonnen",
-      image: "/My-Profile-Pic-2.jpg",
+      image: "/images/expert-pics/My-Profile-Pic-2.jpg",
     },
   ]
 
@@ -123,7 +123,7 @@ export function Navigation() {
         {/* Enhanced Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background w-32 ml-120">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background w-32 ml-118">
                 {navItems.map((item) => (
                   <a
                     key={item.href}

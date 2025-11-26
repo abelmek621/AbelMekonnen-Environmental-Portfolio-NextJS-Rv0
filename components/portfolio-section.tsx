@@ -1,77 +1,45 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ExternalLink } from "lucide-react"
+// components/portfolio-section.tsx
+'use client';
+
+import React, { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
+
+// Client-only map (no SSR)
+const ProjectMap = dynamic(() => import('@/components/ProjectMap'), { ssr: false });
+
+// Precomputed projects with coords
+import projectsWithCoords from '@/data/projects.json';
 
 export function PortfolioSection() {
-  const projects = [
-    {
-      title: "Mining & Oil Exploration",
-      category: "Hydrology",
-      category2: "Air Quality & Noise",
-      description:
-        "Comprehensive environmental impact assessment including hydrogeological baseline studies; air quality, noise level, and dust monitoring /recording/.",
-      image: "/urban-watershed-management-project.jpg",
-      tags: ["Impact Assessment", "Baseline", "Monitoring"],
-      impact: "Minimized environmental impact",
-      link: "https://drive.google.com/drive/folders/1SsCn9KYpCco3s7DJKEWn9lOjuyaPo4kT?usp=drive_link",
-    },
-    {
-      title: "Wind Power & Geothermal Energy",
-      category: "Air Quality & Noise",
-      category2: "GIS & Remote Sensing",
-      description:
-        "Air-quality and noise impact modelling, construction and operational air emissions, and mitigation design for sustainable power development.",
-      image: "/industrial-air-quality-monitoring.jpg",
-      tags: ["Air Emissions", "Modelling", "Mitigation"],
-      impact: "Modelled impacts & optimized siting",
-      link: "https://docs.google.com/presentation/d/1b3FYmLWHKAUwdf8majkuPnfYSS-zjnTKuAu7HfcVkfA/edit?usp=sharing",
-    },
-    {
-      title: "Transmission Lines & Substations",
-      category: "GIS & Remote Sensing",
-      category2: "Hydrology",
-      description:
-        "Route selection and corridor impact assessment using GIS-based constraints mapping, habitat and land-use analysis, EMF and erosion considerations.",
-      image: "/mining-environmental-impact-assessment2.png",
-      tags: ["TL Corridors", "Route Selection", "Habitat Mapping"],
-      impact: "Minimized habitat impact & optimized routing",
-      link: "#",
-    },
-    {
-      title: "Environmental Audit & ESG",
-      category: "Hydrology",
-      category2: "Air Quality & Noise",
-      description:
-        "Corporate environmental audits and ESG gap analysis, including water-use audits, compliance reviews, and actionable roadmap to improve sustainability.",
-      image: "/coastal-erosion-study-environmental.jpg",
-      tags: ["Environmental Audit", "ESG", "Water Audits"],
-      impact: "Improved ESG performance",
-      link: "#",
-    },
-    {
-      title: "LULC & Constarints Mapping",
-      category: "GIS & Remote Sensing",
-      category2: "Hydrology",
-      description:
-        "High-resolution land use / land cover mapping and constraints analysis (floodplains, protected areas, steep slopes) using multi-source satellite imagery.",
-      image: "/forest-change-detection-satellite.jpg",
-      tags: ["LULC", "Constraints Mapping", "Remote Sensing"],
-      impact: "Delivered decision-ready maps",
-      link: "#",
-    },
-    {
-      title: "Environmental Monitoring & EMS",
-      category: "Air Quality & Noise",
-      category2: "Hydrology",
-      description:
-        "Design and implementation of environmental monitoring programs and EMS, data management and reporting to support compliance and continuous improvement.",
-      image: "/environmental-mapping-satellite-imagery.jpg",
-      tags: ["Monitoring Network", "EMS", "Data Management"],
-      impact: "Implemented EMS & reduced incidents",
-      link: "#",
-    },
-  ]
+  // Use the precomputed projects for the cards - filter to get one representative per main category
+  const cardProjects = useMemo(() => {
+    const categories = ['Hydrology', 'Air Quality & Noise', 'GIS & Remote Sensing'];
+    const representativeProjects = [];
+    
+    for (const category of categories) {
+      // Find the first project in this category from precomputed data
+      const project = (projectsWithCoords as any[]).find(p => p.category === category);
+      if (project) {
+        representativeProjects.push(project);
+      }
+    }
+    
+    return representativeProjects;
+  }, []);
 
+  // State: which project (by the precomputed data id) map should center on
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  // Prepare the precomputed dataset to pass to the map
+  const precomputedProjects = useMemo(() => (projectsWithCoords as any[]) || [], []);
+
+  // Helper: when clicking a card, find matching precomputed project by ID
+  function handleCardClick(project: { id: string }) {
+    setSelectedProjectId(project.id);
+  }
 
   return (
     <section id="portfolio" className="py-20 bg-muted/30">
@@ -83,35 +51,73 @@ export function PortfolioSection() {
               Selected projects showcasing expertise across environmental consultancy disciplines
             </p>
           </div>
+          
+          {/* Map Section - Increased height */}
+          <div className="mb-16">
+            <ProjectMap 
+              projects={precomputedProjects} 
+              height={'84vh'} 
+              centerProjectId={selectedProjectId} 
+            />
+          </div>
 
+          {/* Portfolio Cards Section */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {projects.map((project, index) => (
-              <a
-                key={index}
-                href={project.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+            {cardProjects.map((project, index) => (
+              <div
+                key={project.id}
+                onClick={() => handleCardClick(project)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(project); }}
+                className="block group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
               >
-                <Card className="h-full overflow-hidden border-2 hover:border-primary transition-colors">
+                <Card className="h-full overflow-hidden border-2 hover:border-primary transition-colors py-4">
                   <div className="relative overflow-hidden">
                     <img
-                      src={project.image || "/placeholder.svg"}
-                      alt={project.title}
+                      src={project.imageThumb || project.image || "/placeholder.svg"}
+                      width={400} 
+                      height={260} 
+                      alt={project.title} 
+                      // className="object-cover"
                       className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
                     />
                     <div className="absolute top-4 left-4">
-                      <Badge variant="secondary" className="bg-background/90">
+                      <Badge variant="secondary" className="bg-primary/90 text-background/90">
                         {project.category}
                       </Badge>
                     </div>
-                    <div className="absolute top-12 left-4">
-                      <Badge variant="secondary" className="bg-background/90">
-                        {project.category2}
-                      </Badge>
+                    {project.year && (
+                      <div className="absolute top-12 left-4">
+                        <Badge variant="secondary" className="bg-background/90 italic text-xs">
+                          {project.year}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* External link icon */}
+                    <div className="absolute top-4 right-4 z-20"> {/* Added z-20 */}
+                      {project.link ? (
+                        <a
+                          href={project.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(ev) => ev.stopPropagation()}
+                          className="p-1 transition-colors z-30"
+                          aria-label={`Open ${project.title}`}
+                        >
+                          <ExternalLink className="h-6 w-6 text-muted-foreground hover:text-foreground" />
+                        </a>
+                      ) : (
+                        <div className="p-1">
+                          <ExternalLink className="h-6 w-6 text-muted-foreground opacity-40" />
+                        </div>
+                      )}
                     </div>
+
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <ExternalLink className="h-6 w-6 text-white" />
+                      <div className="text-white text-sm font-semibold">View on map</div>
                     </div>
                   </div>
 
@@ -121,11 +127,11 @@ export function PortfolioSection() {
                     </CardTitle>
                   </CardHeader>
 
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-2">
                     <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
 
                     <div className="flex flex-wrap gap-1">
-                      {project.tags.map((tag) => (
+                      {project.tags?.map((tag: string) => (
                         <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                           {tag}
                         </span>
@@ -137,11 +143,11 @@ export function PortfolioSection() {
                     </div>
                   </CardContent>
                 </Card>
-              </a>
+              </div>
             ))}
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }

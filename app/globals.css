@@ -151,4 +151,25 @@
   html, body {
     overflow-x: hidden;
   }
+
+  /* Fix Leaflet map z-index */
+  .leaflet-container {
+    position: relative;
+    z-index: 1;
+  }
+
+  .leaflet-pane {
+    z-index: 1;
+  }
+
+  .navigation {
+    z-index: 1000 !important;
+    position: relative;
+  }
+
+  .chatbot {
+    z-index: 1001 !important;
+    position: relative;
+  }
+
 }
