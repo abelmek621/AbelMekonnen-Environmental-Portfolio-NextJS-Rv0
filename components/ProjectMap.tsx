@@ -22,11 +22,11 @@ if (typeof window !== 'undefined') {
 }
 
 // --- Predefined SVG strings for each icon type ---
-const dropletsSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>`;
+const dropletsSVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>`;
 
-const windSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>`;
+const windSVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>`;
 
-const mapSVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-3.659-1.83a1 1 0 0 0-.894 0l-3.659 1.83a2 2 0 0 1-1.788 0l-4.553-2.277A1 1 0 0 1 1 17.383V4.619a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0l3.659 1.83a1 1 0 0 0 .894 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>`;
+const mapSVG = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-3.659-1.83a1 1 0 0 0-.894 0l-3.659 1.83a2 2 0 0 1-1.788 0l-4.553-2.277A1 1 0 0 1 1 17.383V4.619a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0l3.659 1.83a1 1 0 0 0 .894 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg>`;
 
 // --- Custom divIcons using predefined SVG strings ---
 function createCategoryIcon(svgString: string, backgroundColor: string) {
@@ -36,10 +36,10 @@ function createCategoryIcon(svgString: string, backgroundColor: string) {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 34px;
-        height: 34px;
+        width: 26px;
+        height: 26px;
         background-color: ${backgroundColor};
-        border: 2px solid white;
+        border: 1px solid white;
         border-radius: 50%;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
       ">
@@ -322,7 +322,7 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
                     />
                     <span>Transmission Line Project</span>
                   </div>
-                  {p.tags && p.tags.length > 0 && (
+                  {/* {p.tags && p.tags.length > 0 && (
                     <div style={{ marginBottom: 8 }}>
                       {p.tags.map((tag, index) => (
                         <span 
@@ -342,7 +342,7 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
                         </span>
                       ))}
                     </div>
-                  )}
+                  )} */}
                   {p.link && (
                     <a 
                       href={p.link} 
@@ -394,7 +394,7 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
                     />
                   ) : null}
                   <p style={{ fontSize: 13, marginBottom: 8, lineHeight: '1.4' }}>{p.description}</p>
-                  {p.tags && p.tags.length > 0 && (
+                  {/* {p.tags && p.tags.length > 0 && (
                     <div style={{ marginBottom: 8 }}>
                       {p.tags.map((tag, index) => (
                         <span 
@@ -414,7 +414,7 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
                         </span>
                       ))}
                     </div>
-                  )}
+                  )} */}
                   {p.link ? (
                     <a 
                       href={p.link} 
