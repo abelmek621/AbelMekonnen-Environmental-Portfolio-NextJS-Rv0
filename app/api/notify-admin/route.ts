@@ -1,3 +1,4 @@
+// app/api/notify-admin/route.ts
 import { NextResponse } from 'next/server';
 import { TelegramNotifier } from '@/lib/telegram';
 

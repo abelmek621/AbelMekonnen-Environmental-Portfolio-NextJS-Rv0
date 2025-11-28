@@ -39,11 +39,11 @@ async function main() {
           position: 'center',
           withoutEnlargement: true 
         })
-        .jpeg({ 
+        .webp({ 
           quality: 78,
-          mozjpeg: true 
+          // mozjpeg: true 
         })
-        .toFile(path.join(outDir, `${base}-thumb.jpg`));
+        .toFile(path.join(outDir, `${base}-thumb.webp`));
 
       // SMALL THUMB (popup): 240x150
       await sharp(infile)
@@ -52,11 +52,11 @@ async function main() {
           position: 'center',
           withoutEnlargement: true 
         })
-        .jpeg({ 
+        .webp({ 
           quality: 72,
-          mozjpeg: true 
+          // mozjpeg: true 
         })
-        .toFile(path.join(outDir, `${base}-thumb-sm.jpg`));
+        .toFile(path.join(outDir, `${base}-thumb-sm.webp`));
 
       // Tiny blurred LQIP (10x10) - base64 for blur placeholder
       const tinyBuffer = await sharp(infile)
