@@ -279,5 +279,47 @@
       [7.8956663, 39.6221923],
       [7.8961957, 39.6227286]
     ]
+  },
+  {
+    "id": "proj-008",
+    "title": "Power Transmission Line and Substation Project",
+    "description": "GIS for mapping, data preparation, and impact analysis for Assela Windfarm - Arsi Robe 132kV Power Transmission Line and Substation Project ESIA & RAP studies.",
+    "year": "2024",
+    "image": "/images/portfolio-images/proj-007.webp",
+    "imageThumb": "/images/portfolio-images/thumbs/proj-007-thumb.jpg",
+    "imageThumbSm": "/images/portfolio-images/thumbs/proj-007-thumb-sm.jpg",
+    "lat": 7.8954953,
+    "lng": 39.6235219,
+    "category": "GIS & Remote Sensing",
+    "tags": ["LULC", "Impact Analysis", "Database"],
+    "impact": "Delivered decision-ready maps",
+    "path": [
+      [8.1601191, 39.2275960],
+      [8.1602975, 39.2223925],
+      [8.1677011, 39.2211431],
+      [8.1800203, 39.2306756],
+      [8.1798173, 39.2462228],
+      [8.1494973, 39.2778326],
+      [8.1387777, 39.3156101],
+      [8.1120310, 39.3570131],
+      [8.1236842, 39.3952892],
+      [8.0860830, 39.5010638],
+      [8.0808174, 39.5245706],
+      [8.0597180, 39.5324832],
+      [8.0343713, 39.5362220],
+      [8.0173999, 39.5564781],
+      [7.9938883, 39.5704204],
+      [7.9739934, 39.5905371],
+      [7.9513030, 39.5994956],
+      [7.9192120, 39.6018933],
+      [7.8989644, 39.6176192],
+      [7.8962900, 39.6225895],
+      [7.8961957, 39.6227286],
+      [7.8967250, 39.6232648],
+      [7.8951183, 39.6248620],
+      [7.8940038, 39.6237342],
+      [7.8956663, 39.6221923],
+      [7.8961957, 39.6227286]
+    ]
   }
 ]
