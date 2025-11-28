@@ -43,7 +43,7 @@ export function ServicesSection() {
       contact: "wwww.tsenvironment.com",
       description:
         " ''A quick learner who adapts seamlessly. His expertise was vital for our complex ESIA, Audit, and ESG projects in the extractive industries.'' ",
-      image: "/images/testimonials-pics/Samuel-1.jpeg",
+      image: "/images/testimonials-pics/Samuel-1.webp",
     },
     {
       name: "DESSIE NEDAW (DR.)",
@@ -51,7 +51,7 @@ export function ServicesSection() {
       contact: "dessienedaw@yahoo.com",
       description:
         " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
-      image: "/images/testimonials-pics/testimonial-no-photo-3.jpg",
+      image: "/images/testimonials-pics/testimonial-no-photo-3.webp",
     },
     {
       name: "LYN BROWN",
@@ -59,7 +59,7 @@ export function ServicesSection() {
       contact: "lyn89577@gmail.com",
       description:
         " ''His deep hydrological expertise provided the critical analysis needed for Projects. He transforms complex field data into actionable, compliant solutions.'' ",
-      image: "/images/testimonials-pics/Lyn-1.jpg",
+      image: "/images/testimonials-pics/Lyn-1.webp",
     },
     {
       name: "DEJENE WOLDEMARIAM",
@@ -67,7 +67,7 @@ export function ServicesSection() {
       contact: "dejenewm@gmail.com",
       description: 
         " ''His multidisciplinary skills and precise professional recommendations consistently enhanced our ESIA and RAP studies. An exceptional report writer.'' ",
-      image: "/images/testimonials-pics/testimonial-no-photo-3.jpg",
+      image: "/images/testimonials-pics/testimonial-no-photo-3.webp",
     },
     {
       name: "BELINDA RIDLEY",
@@ -75,7 +75,7 @@ export function ServicesSection() {
       contact: "belinda@ibisconsulting.com",
       description:
         " ''He has a exceptional ability to navigate complex environmental regulations. His work ensure compliance & builds foundation for sustainable project.'' ",
-      image: "/images/testimonials-pics/belinda-1.jpg",
+      image: "/images/testimonials-pics/belinda-1.webp",
     },
     {
       name: "AREBO SAMBI",
@@ -83,7 +83,7 @@ export function ServicesSection() {
       contact: "essdconsult@gmail.com",
       description:
         " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
-      image: "/images/testimonials-pics/testimonial-no-photo-3.jpg",
+      image: "/images/testimonials-pics/testimonial-no-photo-3.webp",
     },
     {
       name: "LELISA TEMESGEN",
@@ -91,7 +91,7 @@ export function ServicesSection() {
       contact: "essdconsult@gmail.com",
       description:
         " ''A true expert whose knowledge sets him apart. He is a go-to person for complex challenges and provides invaluable guidance.'' ",
-      image: "/images/testimonials-pics/lelisa-1.jpg",
+      image: "/images/testimonials-pics/lelisa-1.webp",
     },
     {
       name: "DAWIT DAGNE (DR.)",
@@ -99,7 +99,7 @@ export function ServicesSection() {
       contact: "dave14da@gmail.com",
       description:
         " ''A reliable expert who delivers high-quality reports on time. His clear communication ensures smooth project execution from start to finish.'' ",
-      image: "/images/testimonials-pics/Dawit-1.jpeg",
+      image: "/images/testimonials-pics/Dawit-1.webp",
     },
     {
       name: "SEMUNIGUS AYALEW",
@@ -107,7 +107,7 @@ export function ServicesSection() {
       contact: "semunigus2011@gmail.com",
       description:
         " ''His advanced GIS skills in data interpretation and visualization, paired with his ability to quickly master new challenges, are truly impressive.'' ",
-      image: "/images/testimonials-pics/Semu-1.jpg",
+      image: "/images/testimonials-pics/Semu-1.webp",
     },
     {
       name: "JAN TEN KATE",
@@ -115,7 +115,7 @@ export function ServicesSection() {
       contact: "jjltenkate@gmail.com",
       description:
         " ''His rigorous air quality and noise assessments are a standard for excellence. He consistently delivers models and reports that are technically sound.'' ",
-      image: "/images/testimonials-pics/Jan-1.jpg",
+      image: "/images/testimonials-pics/Jan-1.webp",
     },
     {
       name: "MEQUANINT TENAW",
@@ -123,7 +123,7 @@ export function ServicesSection() {
       contact: "mequanntt@yahoo.com",
       description:
         " ''His talent for systematic data collection, management, and clear presentation was a key asset to our ESIA studies. A highly effective communicator.'' ",
-      image: "/images/testimonials-pics/Mekuanent-1.jpg",
+      image: "/images/testimonials-pics/Mekuanent-1.webp",
     },
     {
       name: "ZEWDU ALEBACHEW",
@@ -131,7 +131,7 @@ export function ServicesSection() {
       contact: "zedoethiopi@gmail.com",
       description:
         " ''He leverages cutting-edge GIS, remote sensing, and digital tools to deliver precise impact analysis and efficient on-field work solutions.'' ",
-      image: "/images/testimonials-pics/Zewdu-1.png",
+      image: "/images/testimonials-pics/Zewdu-1.webp",
     },
   ]
 

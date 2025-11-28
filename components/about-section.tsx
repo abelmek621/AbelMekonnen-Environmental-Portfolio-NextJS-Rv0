@@ -14,7 +14,7 @@ export function AboutSection() {
   ]
   const license = [
     {
-      licenseFile: "/pdfs/EPA-Expert-CoC.pdf",
+      licenseFile: "/pdfs/EPA-Expert-CoC-2025.pdf",
     },
   ]
   const resume = [
@@ -84,7 +84,7 @@ export function AboutSection() {
             <div className="relative">
               <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10 p-4 flex items-center justify-center">
                 <img
-                  src="images/expert-pics/Abel-Mekonnen-portrait-3.jpg"
+                  src="images/expert-pics/Abel-Mekonnen-portrait-3.webp"
                   alt="Environmental Consultant"
                   className="rounded-xl shadow-lg w-full h-full object-cover"
                 />

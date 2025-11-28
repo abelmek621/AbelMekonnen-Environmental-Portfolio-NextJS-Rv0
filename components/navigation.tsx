@@ -13,7 +13,7 @@ export function Navigation() {
     {
       name: "Profile Picture",
       title: "Abel Mekonnen",
-      image: "/images/expert-pics/My-Profile-Pic-2.jpg",
+      image: "/images/expert-pics/My-Profile-Pic-2.webp",
     },
   ]
 
