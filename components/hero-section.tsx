@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button"
 import { ArrowDown, Mail } from "lucide-react"
 
 const IMAGES = [
-  "/images/hero-images/hero-1.jpg",
-  "/images/hero-images/hero-2.jpg",
-  "/images/hero-images/hero-3.jpg",
-  "/images/hero-images/hero-4.jpg",
-  "/images/hero-images/hero-5.jpg",
-  "/images/hero-images/hero-6.jpg",
-  "/images/hero-images/hero-7.jpg",
-  "/images/hero-images/hero-8.jpg",
-  "/images/hero-images/hero-19.png",
+  "/images/hero-images/hero-1.webp",
+  "/images/hero-images/hero-2.webp",
+  "/images/hero-images/hero-3.webp",
+  "/images/hero-images/hero-4.webp",
+  "/images/hero-images/hero-5.webp",
+  "/images/hero-images/hero-6.webp",
+  "/images/hero-images/hero-7.webp",
+  "/images/hero-images/hero-8.webp",
+  "/images/hero-images/hero-19.webp",
   // add more images here if you want a longer slideshow
 ];
 
