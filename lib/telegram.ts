@@ -378,105 +378,138 @@ export class TelegramNotifier {
   }
 
   async handleCallbackQuery(callback: {
-    id: string;
-    from: { id: number; first_name?: string; last_name?: string; username?: string };
-    data: string;
-    message?: { chat: { id: number }; message_id?: number };
-  }) {
-    try {
-      console.log("[TelegramNotifier] Handling callback:", callback.data);
-      
-      const [action, sessionId] = String(callback.data || "").split(":");
-      if (!sessionId) {
-        await this.answerCallbackQuery(callback.id, "Invalid session data", true);
-        return { handled: false };
-      }
-
-      // Get session with proper error handling
-      const session = await getSession(sessionId);
-      if (!session) {
-        console.warn(`[TelegramNotifier] Session ${sessionId} not found`);
-        await this.answerCallbackQuery(callback.id, "Session not found or expired. Please ask the visitor to start a new chat.", true);
-        return { handled: true };
-      }
-
-      if (action === "join") {
-        // Update session with owner info
-        session.accepted = true;
-        session.acceptedBy = {
-          telegramChatId: String(callback.from.id),
-          responderName: `${callback.from.first_name || ""} ${callback.from.last_name || ""}`.trim() || callback.from.username || "Admin",
-          acceptedAt: Date.now(),
-        };
-        session.lastActivityAt = Date.now();
-
-        const saved = await saveSession(session);
-        if (!saved) {
-          await this.answerCallbackQuery(callback.id, "Failed to join chat. Please try again.", true);
-          return { handled: true };
-        }
-
-        await this.answerCallbackQuery(callback.id, "You joined the chat! Reply to any of my messages to talk to the visitor.", false);
-
-        // Send welcome message to owner with force reply
-        try {
-          const welcomeText = `✅ You are now chatting with ${session.visitorName}.\n\nSend your messages here. The visitor will see them in real-time.\n\nSession: ${sessionId}`;
-          
-          const followUp = await this.sendMessage(
-            String(callback.from.id), 
-            welcomeText,
-            { 
-              parse_mode: "HTML",
-              reply_markup: { force_reply: true } 
-            }
-          );
-          
-          const messageId = followUp?.result?.message_id;
-          if (messageId) {
-            msgIdToSessionMap.set(String(messageId), sessionId);
-            if (redis) {
-              try {
-                await redis.setex(`livechat:msg2sess:${messageId}`, 24 * 60 * 60, sessionId);
-              } catch (e) {}
-            }
-          }
-        } catch (e) {
-          console.warn("[TelegramNotifier] Failed to send follow-up message:", e);
-        }
-
-        // Broadcast session acceptance
-        try {
-          if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
-            globalThis.__broadcastSessionUpdate__(sessionId, { 
-              type: "accepted", 
-              session,
-              _meta: { event: "accepted" } 
-            });
-          }
-        } catch (e) {
-          console.warn("[TelegramNotifier] Broadcast failed:", e);
-        }
-        
-        return { handled: true, session };
-      }
-
-      if (action === "away") {
-        session.accepted = false;
-        session.lastActivityAt = Date.now();
-        await saveSession(session);
-        
-        await this.answerCallbackQuery(callback.id, "Marked as away. The visitor will be notified.", false);
-        return { handled: true };
-      }
-
-      await this.answerCallbackQuery(callback.id, "Unknown action", true);
+  id: string;
+  from: { id: number; first_name?: string; last_name?: string; username?: string };
+  data: string;
+  message?: { chat: { id: number }; message_id?: number };
+}) {
+  try {
+    console.log("🔄 [TelegramNotifier] Handling callback:", callback.data);
+    
+    const [action, sessionId] = String(callback.data || "").split(":");
+    if (!sessionId) {
+      await this.answerCallbackQuery(callback.id, "❌ Invalid session data", true);
       return { handled: false };
-    } catch (err) {
-      console.error("[TelegramNotifier] handleCallbackQuery error:", err);
-      await this.answerCallbackQuery(callback.id, "An error occurred. Please try again.", true);
-      return { handled: false, error: err };
     }
+
+    console.log(`🔍 [TelegramNotifier] Looking for session: ${sessionId}`);
+    
+    // Get session with proper error handling - IMPORTANT: Use await
+    const session = await getSession(sessionId);
+    
+    if (!session) {
+      console.error(`❌ [TelegramNotifier] Session ${sessionId} not found in storage`);
+      
+      // Debug: List all current sessions
+      console.log("📋 Current sessions in memory:", Array.from(sessions.keys()));
+      
+      await this.answerCallbackQuery(
+        callback.id, 
+        "❌ Session not found or expired. Please ask the visitor to start a new chat request.", 
+        true
+      );
+      return { handled: true };
+    }
+
+    console.log(`✅ [TelegramNotifier] Found session:`, session);
+
+    if (action === "join") {
+      // Update session with owner info
+      session.accepted = true;
+      session.acceptedBy = {
+        telegramChatId: String(callback.from.id),
+        responderName: `${callback.from.first_name || ""} ${callback.from.last_name || ""}`.trim() || callback.from.username || "Admin",
+        acceptedAt: Date.now(),
+      };
+      session.lastActivityAt = Date.now();
+
+      const saved = await saveSession(session);
+      if (!saved) {
+        console.error(`❌ [TelegramNotifier] Failed to save session ${sessionId}`);
+        await this.answerCallbackQuery(callback.id, "❌ Failed to join chat. Please try again.", true);
+        return { handled: true };
+      }
+
+      console.log(`✅ [TelegramNotifier] Session ${sessionId} accepted by ${session.acceptedBy.responderName}`);
+      
+      await this.answerCallbackQuery(
+        callback.id, 
+        "✅ You joined the chat! Reply to this chat to talk to the visitor.", 
+        false
+      );
+
+      // Send welcome message to owner
+      try {
+        const welcomeText = 
+          `✅ You are now chatting with ${session.visitorName}.\n\n` +
+          `💬 <b>Their original message:</b>\n` +
+          `${session.message}\n\n` +
+          `🌐 <b>Page:</b> ${session.pageUrl}\n` +
+          `📧 <b>Email:</b> ${session.email}\n\n` +
+          `🆔 <b>Session:</b> <code>${sessionId}</code>\n\n` +
+          `Just type your messages here and they will be sent to the visitor in real-time!`;
+        
+        const followUp = await this.sendMessage(
+          String(callback.from.id), 
+          welcomeText,
+          { 
+            parse_mode: "HTML",
+            reply_markup: { force_reply: true } 
+          }
+        );
+        
+        const messageId = followUp?.result?.message_id;
+        if (messageId) {
+          // Store this mapping so replies to this message go to the right session
+          msgIdToSessionMap.set(String(messageId), sessionId);
+          if (redis) {
+            try {
+              await redis.setex(`livechat:msg2sess:${messageId}`, 24 * 60 * 60, sessionId);
+            } catch (e) {
+              console.warn("Failed to save message mapping to Redis:", e);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("❌ [TelegramNotifier] Failed to send follow-up message:", e);
+      }
+
+      // Broadcast session acceptance to website
+      try {
+        if (typeof globalThis.__broadcastSessionUpdate__ === "function") {
+          globalThis.__broadcastSessionUpdate__(sessionId, { 
+            type: "accepted", 
+            session,
+            _meta: { event: "accepted" } 
+          });
+          console.log(`✅ [TelegramNotifier] Broadcasted session acceptance for ${sessionId}`);
+        } else {
+          console.warn("❌ [TelegramNotifier] Broadcast function not available");
+        }
+      } catch (e) {
+        console.error("❌ [TelegramNotifier] Broadcast failed:", e);
+      }
+      
+      return { handled: true, session };
+    }
+
+    if (action === "away") {
+      session.accepted = false;
+      session.lastActivityAt = Date.now();
+      await saveSession(session);
+      
+      await this.answerCallbackQuery(callback.id, "❌ Marked as away. The visitor will be notified.", false);
+      return { handled: true };
+    }
+
+    await this.answerCallbackQuery(callback.id, "❌ Unknown action", true);
+    return { handled: false };
+  } catch (err) {
+    console.error("❌ [TelegramNotifier] handleCallbackQuery error:", err);
+    await this.answerCallbackQuery(callback.id, "❌ An error occurred. Please try again.", true);
+    return { handled: false, error: err };
   }
+}
 
   async appendOwnerMessageToSession(ownerTelegramChatId: string, text: string, replyToMessageId?: number | null) {
     try {
