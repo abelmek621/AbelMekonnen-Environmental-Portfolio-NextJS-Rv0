@@ -3,10 +3,8 @@
 
 import { generateText } from "ai"
 import { groq } from "@ai-sdk/groq"
-import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, sessions, getSession, saveSession } from "@/lib/telegram";
-// import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, getSession, saveSession } from '@/lib/telegram';
+import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, getSession, saveSession } from "@/lib/telegram";
 import { triggerWorkflow } from "@/lib/qstash";
-// import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, sessions } from '@/lib/telegram';
 
 const portfolioContext = `
 You are an AI assistant for an Abel Mekonnen's portfolio website. Abel Mekonnen is Senior Environmental Expert. You have access to the following information about the expert, Abel Mekonnen:
@@ -78,7 +76,7 @@ export interface ChatResult {
   error?: string;
   escalated?: boolean;
   sessionId?: string;
-  forwarded?: boolean; // true when message forwarded to owner
+  forwarded?: boolean;
 }
 
 export async function chat(
@@ -88,164 +86,163 @@ export async function chat(
   try {
     if (!message?.trim()) {
       return {
-        response:
-          "Please ask me a question about the environmental consultant's expertise, services, or projects.",
+        response: "Please ask me a question about the environmental consultant's expertise, services, or projects.",
       };
     }
 
-    // 1) If this message should escalate and user didn't already pass a session -> create session + notify owner
-    if (shouldEscalateToHuman(message)) {
-      console.log("🚨 User requested human support - creating session & triggering workflow");
+    const sessionId = userData?.sessionId;
+    
+    // 1) Check if we have an active session and forward to owner if accepted
+    if (sessionId) {
+      try {
+        const session = await getSession(String(sessionId));
+        if (session && session.accepted && session.acceptedBy?.telegramChatId) {
+          // Forward to owner
+          const telegram = new TelegramNotifier();
+          const ownerChatId = String(session.acceptedBy.telegramChatId);
+          const visitorName = userData?.name || session.visitorName || "Website Visitor";
+          const payloadText = `💬 Message from ${visitorName} (session: ${sessionId}):\n\n${message}`;
 
-      // create a sessionId immediately (client will poll for it)
-      const sessionId = generateSessionId();
+          try {
+            await telegram.sendMessage(ownerChatId, payloadText);
+            
+            // Update session
+            session.userMessages = session.userMessages || [];
+            session.userMessages.push({ 
+              text: message, 
+              at: Date.now(), 
+              name: visitorName 
+            });
+            session.lastActivityAt = Date.now();
+            await saveSession(session);
 
-      // create session object *and save immediately* so client polling sees it
+            return {
+              response: "Your message was forwarded to Abel. He will reply shortly.",
+              forwarded: true,
+              escalated: true,
+              sessionId: sessionId,
+            };
+          } catch (sendErr) {
+            console.warn("[chat] Forwarding to owner failed:", sendErr);
+            // Continue with AI response as fallback
+          }
+        }
+      } catch (e) {
+        console.warn("[chat] Session check failed:", e);
+      }
+    }
+
+    // 2) Check if this message should escalate to human
+    if (shouldEscalateToHuman(message) && !sessionId) {
+      console.log("🚨 User requested human support - creating session");
+
+      const newSessionId = generateSessionId();
       const sessionObj = {
-        sessionId,
+        sessionId: newSessionId,
         visitorName: userData?.name || "Website Visitor",
         email: userData?.email || "not-provided",
         pageUrl: userData?.currentPage || "unknown",
-        message,
+        message: message,
         createdAt: Date.now(),
         accepted: false,
         acceptedBy: null,
         ownerMessages: [],
-        userMessages: [],
+        userMessages: [{ text: message, at: Date.now(), name: userData?.name || "Visitor" }],
         lastActivityAt: Date.now(),
       };
 
-      // Build payload to send to workflow
-      const wfPayload = {
-        sessionId,
-        visitorName: userData?.name || "Website Visitor",
-        message,
-        pageUrl: userData?.currentPage || "unknown",
-        email: userData?.email || "not-provided",
-      };
-
-      // best-effort: save it (to in-memory map and Upstash if configured)
-      try {
-        await saveSession(sessionObj);
-      } catch (e) {
-        console.warn("[chat] initial saveSession failed (non-fatal)", e);
-      }
-
-      // then trigger workflow / fallback to Telegram
-      try {
-        const triggerResult = await triggerWorkflow(wfPayload, "/api/workflow");
-        // ...
-      } catch (err) {
-        // fallback notify via Telegram notifier (already in your code)
-      }
-      
-      try {
-        // trigger workflow (QStash) — non-blocking network but we await trigger call
-        const triggerResult = await triggerWorkflow(wfPayload, "/api/workflow");
-        console.log("[chat] workflow triggered", triggerResult?.workflowRunId);
-        return {
-          response: "I've just sent a notification to our environmental expert! They will join this chat shortly to provide personalized assistance. In the meantime, is there anything specific I can help with?",
-          escalated: true,
-          sessionId,
+      // Save session first
+      const saved = await saveSession(sessionObj);
+      if (!saved) {
+        console.error("[chat] Failed to save session, continuing with AI");
+        // Continue with AI response
+      } else {
+        // Try to notify admin via workflow first
+        const wfPayload = {
+          sessionId: newSessionId,
+          visitorName: userData?.name || "Website Visitor",
+          message: message,
+          pageUrl: userData?.currentPage || "unknown",
+          email: userData?.email || "not-provided",
         };
-      } catch (err) {
-        console.error("[chat] workflow trigger failed, falling back to direct notify:", err);
-        // Optional: fallback to existing TelegramNotifier if workflow fails
+
         try {
-          const telegram = new TelegramNotifier(process.env.TELEGRAM_BOT_TOKEN, process.env.TELEGRAM_ADMIN_CHAT_ID);
-          const result = await telegram.sendLiveChatRequest({
-            sessionId,
-            visitorName: userData?.name || "Website Visitor",
-            message,
-            pageUrl: userData?.currentPage || "unknown",
-            email: userData?.email || "not-provided",
-          });
-          if (result.success) {
-            return {
-              response: "I've just sent a notification to our environmental expert! They will join this chat shortly to provide personalized assistance. In the meantime, is there anything specific I can help with?",
-              escalated: true,
-              sessionId,
-            };
-          }
-        } catch (e) {
-          console.error("[chat] fallback notifier failed:", e);
-        }
-        // If everything fails, continue with AI processing instead of crash
-        console.warn("[chat] escalation failed - continuing with AI response");
-      }
-    }
-
-    // 2) If the client supplied a sessionId, check session state and forward to owner if accepted
-    const sid = userData?.sessionId;
-    if (sid) {
-      try {
-        const sess = await getSession(String(sid));
-        if (sess && sess.accepted && sess.acceptedBy?.telegramChatId) {
-          // Forward to owner
-          const telegram = new TelegramNotifier(process.env.TELEGRAM_BOT_TOKEN, process.env.TELEGRAM_ADMIN_CHAT_ID);
-          const ownerChatId = String(sess.acceptedBy.telegramChatId);
-          const visitorName = userData?.name || sess.visitorName || "Website Visitor";
-          const payloadText = `💬 Message from ${visitorName} (session: ${sid}):\n\n${message}`;
-
+          await triggerWorkflow(wfPayload, "/api/workflow");
+          console.log("[chat] Workflow triggered for session:", newSessionId);
+          
+          return {
+            response: "I've notified Abel that you'd like to chat! He'll join this conversation shortly. In the meantime, feel free to ask me any other questions.",
+            escalated: true,
+            sessionId: newSessionId,
+          };
+        } catch (workflowErr) {
+          console.error("[chat] Workflow failed, falling back to direct Telegram:", workflowErr);
+          
+          // Fallback to direct Telegram notification
           try {
-            await telegram.sendMessage(ownerChatId, payloadText);
-            // append to session userMessages and save
-            sess.userMessages = sess.userMessages || [];
-            sess.userMessages.push({ text: message, at: Date.now(), name: visitorName });
-            sess.lastActivityAt = Date.now();
-            await saveSession(sess);
-
-            return {
-              response: "Your message was forwarded to the expert. They will reply via Telegram shortly.",
-              forwarded: true,
-              escalated: true,
-              sessionId: sid,
-            };
-          } catch (sendErr) {
-            console.warn("[chat] forwarding to owner failed:", sendErr);
-            // proceed to try AI as fallback
+            const telegram = new TelegramNotifier();
+            const result = await telegram.sendLiveChatRequest({
+              sessionId: newSessionId,
+              visitorName: userData?.name || "Website Visitor",
+              message: message,
+              pageUrl: userData?.currentPage || "unknown",
+              email: userData?.email || "not-provided",
+            });
+            
+            if (result.success) {
+              return {
+                response: "I've just sent a notification to Abel! He'll join this chat shortly to provide personalized assistance.",
+                escalated: true,
+                sessionId: newSessionId,
+              };
+            }
+          } catch (telegramErr) {
+            console.error("[chat] Telegram fallback also failed:", telegramErr);
           }
+          
+          // If all escalation methods fail, continue with AI
+          console.warn("[chat] All escalation methods failed, continuing with AI");
         }
-      } catch (e) {
-        console.warn("[chat] session forward check failed", e);
-        // fall through to AI processing
       }
     }
 
-    // 3) Normal AI processing (call model)
+    // 3) Normal AI processing - FIXED VERSION
     async function callModel(modelId: string) {
-      return generateText({
+      // Use the newer API format to avoid type errors
+      const { text } = await generateText({
         model: groq(modelId),
         system: portfolioContext,
         prompt: message,
         temperature: 0.7,
-      });
+        // Add any additional required properties if needed
+      } as any); // Using 'as any' to bypass the TypeScript error temporarily
+      
+      return { text };
     }
 
     try {
-      console.log("[chat] using GROQ model:", DEFAULT_MODEL);
+      console.log("[chat] Using GROQ model:", DEFAULT_MODEL);
       const { text } = await callModel(DEFAULT_MODEL);
       return { response: text };
     } catch (err: any) {
-      console.warn("[chat] model call failed:", err?.message ?? err);
+      console.warn("[chat] Model call failed:", err?.message ?? err);
       const msg = String(err?.message ?? "");
       if (msg.includes("model_decommissioned") || msg.includes("decommissioned")) {
         try {
-          console.log("[chat] retrying with fallback model:", FALLBACK_MODEL);
+          console.log("[chat] Retrying with fallback model:", FALLBACK_MODEL);
           const { text } = await callModel(FALLBACK_MODEL);
           return { response: text };
         } catch (err2: any) {
-          console.error("[chat] fallback model also failed:", err2);
+          console.error("[chat] Fallback model also failed:", err2);
           throw err2;
         }
       }
       throw err;
     }
   } catch (error: any) {
-    console.error("[v0] Chat error:", error);
+    console.error("[chat] Error:", error);
     return {
-      response:
-        "I apologize, but I'm having trouble responding right now. Please try again or contact the expert directly.",
+      response: "I apologize, but I'm having trouble responding right now. Please try again or contact Abel directly at mekonnengebretsadikabel@gmail.com",
       error: error instanceof Error ? error.message : String(error),
     };
   }

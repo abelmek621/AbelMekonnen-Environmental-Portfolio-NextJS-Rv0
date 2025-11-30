@@ -26,7 +26,7 @@ export function PortfolioSection() {
         representativeProjects.push(project);
       }
     }
-    
+      
     return representativeProjects;
   }, []);
 
