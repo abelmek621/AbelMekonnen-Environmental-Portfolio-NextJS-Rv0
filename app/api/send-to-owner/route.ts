@@ -1,6 +1,10 @@
-// app/api/send-to-owner/route.ts
 import { NextResponse } from "next/server";
-import { TelegramNotifier, sessions } from "@/lib/telegram";
+import { sessions } from "@/lib/telegram";
+
+// Declare global type
+declare global {
+  var __broadcastSessionUpdate__: ((sessionId: string, payload: any) => void) | undefined;
+}
 
 export async function POST(request: Request) {
   try {
@@ -48,13 +52,14 @@ export async function POST(request: Request) {
       sess.lastActivityAt = now;
       sessions.set(String(sessionId), sess);
 
-      // Broadcast updated session to SSE listeners (if available)
+      // Broadcast updated session to SSE listeners with proper type checking
       try {
-        if (typeof (globalThis as any).__broadcastSessionUpdate__ === "function") {
-          (globalThis as any).__broadcastSessionUpdate__(String(sessionId), sess);
-          console.log("[send-to-owner] broadcasted updated session via globalThis.__broadcastSessionUpdate__", sessionId);
+        const broadcastFn = global.__broadcastSessionUpdate__;
+        if (typeof broadcastFn === "function") {
+          broadcastFn(String(sessionId), sess);
+          console.log("[send-to-owner] broadcasted updated session via global.__broadcastSessionUpdate__", sessionId);
         } else {
-          // Try dynamic import fallback if needed (defensive)
+          // Try dynamic import fallback if needed
           try {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -80,3 +85,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "internal error" }, { status: 500 });
   }
 }
+
+// Import TelegramNotifier
+import { TelegramNotifier } from "@/lib/telegram";

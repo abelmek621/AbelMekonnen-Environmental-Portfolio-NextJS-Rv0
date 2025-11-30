@@ -1,6 +1,9 @@
-// app/api/session-events/route.ts
 import { NextRequest } from 'next/server';
-import { sessions } from '@/lib/telegram';
+
+// Declare global type for this file
+declare global {
+  var __broadcastSessionUpdate__: ((sessionId: string, payload: any) => void) | undefined;
+}
 
 // Store connected clients
 const clients = new Map<string, ReadableStreamDefaultController[]>();
@@ -22,8 +25,8 @@ function broadcastSessionUpdate(sessionId: string, payload: any) {
 }
 
 // Set the global broadcast function - THIS IS CRITICAL
-if (typeof globalThis.__broadcastSessionUpdate__ === 'undefined') {
-  globalThis.__broadcastSessionUpdate__ = broadcastSessionUpdate;
+if (typeof global.__broadcastSessionUpdate__ === 'undefined') {
+  global.__broadcastSessionUpdate__ = broadcastSessionUpdate;
   console.log('[session-events] Global broadcast function set');
 }
 
@@ -75,6 +78,9 @@ export async function GET(request: NextRequest) {
     },
   });
 }
+
+// Import sessions from telegram with proper typing
+import { sessions } from '@/lib/telegram';
 
 // Export the broadcast function for direct use if needed
 export { broadcastSessionUpdate };
