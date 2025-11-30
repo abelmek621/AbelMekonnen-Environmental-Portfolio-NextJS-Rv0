@@ -15,6 +15,7 @@ export default function DebugSessions() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [redisStatus, setRedisStatus] = useState<string>('')
+  const [testResult, setTestResult] = useState<string>('')
 
   const loadSessions = async () => {
     try {
@@ -23,7 +24,7 @@ export default function DebugSessions() {
       
       if (data.sessions) {
         setSessions(data.sessions)
-        setRedisStatus(data.redisStatus)
+        setRedisStatus(data.redisStatus || 'unknown')
       } else {
         setSessions([])
         setRedisStatus('error')
@@ -46,10 +47,27 @@ export default function DebugSessions() {
   const deleteSession = async (sessionId: string) => {
     try {
       await fetch(`/api/redis-debug?sessionId=${sessionId}`, { method: 'DELETE' })
-      await loadSessions() // Reload the list
+      await loadSessions()
     } catch (error) {
       console.error('Failed to delete session:', error)
       alert('Failed to delete session')
+    }
+  }
+
+  const testSessionCreation = async () => {
+    try {
+      setTestResult('Testing...')
+      const response = await fetch('/api/test-session?action=create')
+      const data = await response.json()
+      
+      if (data.success) {
+        setTestResult(`✅ Test session created: ${data.sessionId}`)
+        await loadSessions() // Refresh the list
+      } else {
+        setTestResult('❌ Failed to create test session')
+      }
+    } catch (error) {
+      setTestResult('❌ Test failed: ' + error)
     }
   }
 
@@ -64,12 +82,28 @@ export default function DebugSessions() {
       <div className="mb-6 p-4 bg-gray-100 rounded">
         <p><strong>Redis Status:</strong> {redisStatus}</p>
         <p><strong>Total Sessions:</strong> {sessions.length}</p>
-        <button 
-          onClick={loadSessions}
-          className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Refresh
-        </button>
+        
+        <div className="mt-4 space-y-2">
+          <button 
+            onClick={loadSessions}
+            className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
+          >
+            Refresh Sessions
+          </button>
+          
+          <button 
+            onClick={testSessionCreation}
+            className="bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Test Session Creation
+          </button>
+        </div>
+        
+        {testResult && (
+          <div className={`mt-2 p-2 rounded ${testResult.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            {testResult}
+          </div>
+        )}
       </div>
 
       {sessions.length === 0 ? (
@@ -81,8 +115,15 @@ export default function DebugSessions() {
               <li>No one has requested live chat yet</li>
               <li>Redis is not properly configured</li>
               <li>Sessions are expiring immediately</li>
+              <li>The session storage is not working</li>
             </ul>
           </p>
+          <button 
+            onClick={testSessionCreation}
+            className="mt-2 bg-green-500 text-white px-4 py-2 rounded"
+          >
+            Test if sessions work
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -108,17 +149,36 @@ export default function DebugSessions() {
                       Accepted by: {session.acceptedBy.responderName} (Telegram: {session.acceptedBy.telegramChatId})
                     </p>
                   )}
+                  
+                  {/* Test this specific session */}
+                  <div className="mt-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`/api/test-session?action=get&sessionId=${session.sessionId}`)
+                          const data = await response.json()
+                          alert(`Session lookup: ${data.found ? '✅ Found' : '❌ Not found'}\n\n${JSON.stringify(data.session, null, 2)}`)
+                        } catch (error) {
+                          alert('Test failed: ' + error)
+                        }
+                      }}
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm mr-2"
+                    >
+                      Test Lookup
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete session for ${session.visitorName}?`)) {
+                          deleteSession(session.sessionId)
+                        }
+                      }}
+                      className="bg-red-500 text-white px-3 py-1 rounded text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => {
-                    if (confirm(`Delete session for ${session.visitorName}?`)) {
-                      deleteSession(session.sessionId)
-                    }
-                  }}
-                  className="bg-red-500 text-white px-3 py-1 rounded text-sm ml-4"
-                >
-                  Delete
-                </button>
               </div>
             </div>
           ))}

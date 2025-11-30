@@ -1,4 +1,3 @@
-// app/api/session-status/route.ts
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/telegram";
 
@@ -6,24 +5,48 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const sessionId = url.searchParams.get("sessionId");
-    if (!sessionId) return NextResponse.json({ error: "sessionId required" }, { status: 400 });
-    const sess = await getSession(sessionId);
-    if (!sess) return NextResponse.json({ status: "not_found" }, { status: 404 });
+    
+    if (!sessionId) {
+      return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
+    }
+
+    console.log(`🔍 [session-status] Looking for session: ${sessionId}`);
+    
+    const session = await getSession(sessionId);
+    
+    if (!session) {
+      console.log(`❌ [session-status] Session ${sessionId} not found`);
+      return NextResponse.json({ 
+        status: "not_found",
+        message: "Session not found or expired"
+      }, { status: 404 });
+    }
+
+    console.log(`✅ [session-status] Session found:`, {
+      sessionId: session.sessionId,
+      accepted: session.accepted,
+      visitorName: session.visitorName
+    });
+
     return NextResponse.json({
-      status: sess.accepted ? "accepted" : "pending",
+      status: session.accepted ? "accepted" : "pending",
       session: {
-        sessionId: sess.sessionId,
-        visitorName: sess.visitorName,
-        email: sess.email,
-        pageUrl: sess.pageUrl,
-        createdAt: sess.createdAt,
-        ownerMessages: sess.ownerMessages || [],
-        userMessages: sess.userMessages || [],
-        accepted: sess.accepted || false,
+        sessionId: session.sessionId,
+        visitorName: session.visitorName,
+        email: session.email,
+        pageUrl: session.pageUrl,
+        createdAt: session.createdAt,
+        ownerMessages: session.ownerMessages || [],
+        userMessages: session.userMessages || [],
+        accepted: session.accepted || false,
+        acceptedBy: session.acceptedBy,
+        lastActivityAt: session.lastActivityAt,
       },
     });
-  } catch (err) {
-    console.error("session-status error", err);
-    return NextResponse.json({ error: "internal" }, { status: 500 });
+  } catch (error) {
+    console.error("❌ [session-status] Error:", error);
+    return NextResponse.json({ 
+      error: "Internal server error" 
+    }, { status: 500 });
   }
 }

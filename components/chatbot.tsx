@@ -112,76 +112,82 @@ export function Chatbot() {
     }
   }
 
-  async function startPolling(sid: string) {
-    if (!sid) return;
-    stopPolling();
-    escalationStartedAt.current = Date.now();
-    lastOwnerIndexRef.current = 0;
-    setSessionEnded(false);
-    sessionEndedRef.current = false;
+  // In the startPolling function, update the fetch call:
+async function startPolling(sid: string) {
+  if (!sid) return;
+  stopPolling();
+  escalationStartedAt.current = Date.now();
+  lastOwnerIndexRef.current = 0;
+  setSessionEnded(false);
+  sessionEndedRef.current = false;
 
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-        const res = await fetch(`/api/session-status?sessionId=${encodeURIComponent(sid)}`, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        if (!res.ok) {
-          if (res.status === 404) return;
-          return;
-        }
-        const payload = await res.json().catch(() => null);
-        if (!payload) return;
-
-        // accepted
-        if (payload.status === "accepted") {
-          setSessionAccepted(true);
-          setWaitingForHuman(false);
-          setSessionEnded(false);
-
-          const ownerMessages: { text: string; at: number }[] = payload.session?.ownerMessages || [];
-          const last = lastOwnerIndexRef.current || 0;
-          if (ownerMessages.length > last) {
-            const newMsgs = ownerMessages.slice(last);
-            newMsgs.forEach((om) => {
-              const m: Message = {
-                id: `owner_${Date.now()}_${Math.random().toString(36).slice(2,9)}`,
-                text: om.text,
-                sender: "owner",
-                timestamp: new Date(om.at),
-              };
-              setMessages((prev) => [...prev, m]);
-            });
-            lastOwnerIndexRef.current = ownerMessages.length;
-          }
-        } else if (payload.status === "pending") {
-          // still waiting
-          setSessionEnded(false);
-        }
-
-        // handle server-initiated session end
-        if (payload.session && payload.session.accepted === false && payload.session.endedAt && !sessionEndedRef.current) {
-          handleSessionEnd("Abel has ended the live chat session. You can continue chatting with AI assistant.");
-        }
-
-        // broadcast meta events (if your server uses them)
-        if (payload._meta?.event === "session_ended" && !sessionEndedRef.current) {
-          handleSessionEnd(payload._meta?.message || "Abel has ended the live chat session. You can continue chatting with AI assistant.");
-        }
-
-      } catch (err: any) {
-        if (err?.name === "AbortError") {
-          // timeout - ignore
-        } else {
-          console.error("[poll] error", err);
-        }
+  pollRef.current = window.setInterval(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      
+      const res = await fetch(`/api/session-status?sessionId=${encodeURIComponent(sid)}`, {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeout);
+      
+      if (res.status === 404) {
+        console.log(`❌ Session ${sid} not found, stopping polling`);
+        handleSessionEnd("Session expired. Please start a new chat if you need assistance.");
+        return;
       }
-    }, POLL_INTERVAL_MS);
-  }
+      
+      if (!res.ok) {
+        console.warn(`⚠️ Session status returned ${res.status}`);
+        return;
+      }
+      
+      const payload = await res.json().catch(() => null);
+      if (!payload) return;
+
+      // Handle accepted session
+      if (payload.status === "accepted") {
+        setSessionAccepted(true);
+        setWaitingForHuman(false);
+        setSessionEnded(false);
+
+        const ownerMessages: { text: string; at: number }[] = payload.session?.ownerMessages || [];
+        const last = lastOwnerIndexRef.current || 0;
+        if (ownerMessages.length > last) {
+          const newMsgs = ownerMessages.slice(last);
+          newMsgs.forEach((om) => {
+            const m: Message = {
+              id: `owner_${Date.now()}_${Math.random().toString(36).slice(2,9)}`,
+              text: om.text,
+              sender: "owner",
+              timestamp: new Date(om.at),
+            };
+            setMessages((prev) => [...prev, m]);
+          });
+          lastOwnerIndexRef.current = ownerMessages.length;
+        }
+      } else if (payload.status === "pending") {
+        // Still waiting
+        setSessionEnded(false);
+      }
+
+      // Handle session end from server
+      if (payload.session && payload.session.accepted === false && payload.session.endedAt && !sessionEndedRef.current) {
+        handleSessionEnd("Abel has ended the live chat session. You can continue chatting with AI assistant.");
+      }
+
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        // timeout - ignore
+      } else {
+        console.error("[poll] error", err);
+      }
+    }
+  }, POLL_INTERVAL_MS);
+}
 
   const handleSessionEnd = (message: string) => {
     sessionEndedRef.current = true;
