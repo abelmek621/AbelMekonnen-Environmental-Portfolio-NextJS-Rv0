@@ -133,6 +133,7 @@ export async function chat(
     }
 
     // 2) Check if this message should escalate to human
+    // In the chat function, replace the escalation section:
     if (shouldEscalateToHuman(message) && !sessionId) {
       console.log("🚨 User requested human support - creating session");
 
@@ -151,58 +152,41 @@ export async function chat(
         lastActivityAt: Date.now(),
       };
 
-      // Save session first
+      // Save session using the new reliable method
       const saved = await saveSession(sessionObj);
       if (!saved) {
-        console.error("[chat] Failed to save session, continuing with AI");
-        // Continue with AI response
-      } else {
-        // Try to notify admin via workflow first
-        const wfPayload = {
+        console.error("[chat] CRITICAL: Failed to save session to storage");
+        return {
+          response: "I apologize, but I'm having trouble connecting to the live chat service. Please try again later or contact me directly at mekonnengebretsadikabel@gmail.com",
+        };
+      }
+
+      console.log(`✅ [chat] Session ${newSessionId} saved successfully, sending Telegram notification`);
+
+      // Send Telegram notification
+      try {
+        const telegram = new TelegramNotifier();
+        const result = await telegram.sendLiveChatRequest({
           sessionId: newSessionId,
           visitorName: userData?.name || "Website Visitor",
           message: message,
           pageUrl: userData?.currentPage || "unknown",
           email: userData?.email || "not-provided",
-        };
-
-        try {
-          await triggerWorkflow(wfPayload, "/api/workflow");
-          console.log("[chat] Workflow triggered for session:", newSessionId);
-          
+        });
+        
+        if (result.success) {
           return {
-            response: "I've notified Abel that you'd like to chat! He'll join this conversation shortly. In the meantime, feel free to ask me any other questions.",
+            response: "I've just sent a notification to Abel! He'll join this chat shortly to provide personalized assistance.",
             escalated: true,
             sessionId: newSessionId,
           };
-        } catch (workflowErr) {
-          console.error("[chat] Workflow failed, falling back to direct Telegram:", workflowErr);
-          
-          // Fallback to direct Telegram notification
-          try {
-            const telegram = new TelegramNotifier();
-            const result = await telegram.sendLiveChatRequest({
-              sessionId: newSessionId,
-              visitorName: userData?.name || "Website Visitor",
-              message: message,
-              pageUrl: userData?.currentPage || "unknown",
-              email: userData?.email || "not-provided",
-            });
-            
-            if (result.success) {
-              return {
-                response: "I've just sent a notification to Abel! He'll join this chat shortly to provide personalized assistance.",
-                escalated: true,
-                sessionId: newSessionId,
-              };
-            }
-          } catch (telegramErr) {
-            console.error("[chat] Telegram fallback also failed:", telegramErr);
-          }
-          
-          // If all escalation methods fail, continue with AI
-          console.warn("[chat] All escalation methods failed, continuing with AI");
+        } else {
+          console.error("[chat] Telegram notification failed:", result.error);
+          // Continue with AI response
         }
+      } catch (telegramErr) {
+        console.error("[chat] Telegram error:", telegramErr);
+        // Continue with AI response
       }
     }
 

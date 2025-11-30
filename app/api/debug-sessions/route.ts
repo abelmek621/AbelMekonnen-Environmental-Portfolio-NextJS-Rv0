@@ -1,43 +1,59 @@
+// app/api/debug-session/route.ts
 import { NextResponse } from "next/server";
-import { sessions, deleteSession } from "@/lib/telegram";
+import { getSession, saveSession, generateSessionId } from "@/lib/telegram";
 
-export async function GET() {
-  try {
-    const sessionArray = Array.from(sessions.values()).map(session => ({
-      sessionId: session.sessionId,
-      visitorName: session.visitorName,
-      accepted: session.accepted,
-      createdAt: session.createdAt,
-      lastActivityAt: session.lastActivityAt,
-      acceptedBy: session.acceptedBy,
-      userMessages: session.userMessages?.length || 0,
-      ownerMessages: session.ownerMessages?.length || 0,
-    }));
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const sessionId = url.searchParams.get("sessionId");
+  const action = url.searchParams.get("action");
 
-    return NextResponse.json({
-      sessions: sessionArray,
-      total: sessionArray.length
-    });
-  } catch (error) {
-    console.error("Debug sessions error:", error);
-    return NextResponse.json({ error: "Failed to get sessions" }, { status: 500 });
-  }
-}
+  if (action === "test") {
+    // Test session creation and retrieval
+    const testSessionId = generateSessionId("test");
+    const testSession = {
+      sessionId: testSessionId,
+      visitorName: "Test User",
+      email: "test@example.com",
+      pageUrl: "https://example.com/test",
+      message: "Test message",
+      createdAt: Date.now(),
+      accepted: false,
+      acceptedBy: null,
+      ownerMessages: [],
+      userMessages: [],
+      lastActivityAt: Date.now(),
+    };
 
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('sessionId');
+    console.log(`🧪 Creating test session: ${testSessionId}`);
+    const saved = await saveSession(testSession);
     
-    if (!sessionId) {
-      return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
+    if (saved) {
+      const retrieved = await getSession(testSessionId);
+      return NextResponse.json({
+        test: "session_storage",
+        created: true,
+        retrieved: !!retrieved,
+        sessionId: testSessionId,
+        session: retrieved
+      });
+    } else {
+      return NextResponse.json({
+        test: "session_storage",
+        created: false,
+        retrieved: false,
+        error: "Failed to save session"
+      });
     }
-
-    await deleteSession(sessionId);
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Delete session error:", error);
-    return NextResponse.json({ error: "Failed to delete session" }, { status: 500 });
   }
+
+  if (sessionId) {
+    const session = await getSession(sessionId);
+    return NextResponse.json({
+      sessionId,
+      found: !!session,
+      session: session
+    });
+  }
+
+  return NextResponse.json({ error: "Provide sessionId or action=test" });
 }
