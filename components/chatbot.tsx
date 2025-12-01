@@ -38,6 +38,7 @@ function RotatingGlobe() {
 
 const POLL_INTERVAL_MS = 3000
 const FETCH_TIMEOUT_MS = 20000 // 20s timeout for each poll
+const MAX_POLL_ATTEMPTS = 10 // Maximum number of 404 attempts before giving up
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false)
@@ -58,29 +59,17 @@ export function Chatbot() {
   const [sessionEnded, setSessionEnded] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  // const chatContainerRef = useRef<HTMLDivElement>(null)
   const lastOwnerIndexRef = useRef<number>(0)
   const pollRef = useRef<number | null>(null)
   const escalationStartedAt = useRef<number | null>(null)
   const sessionEndedRef = useRef(false)
   const forwardToastTimerRef = useRef<number | null>(null)
+  const pollAttemptsRef = useRef<number>(0) // Track polling attempts
 
   // scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
-
-  // dynamic container height
-  /* useEffect(() => {
-    if (chatContainerRef.current && isOpen) {
-      const container = chatContainerRef.current;
-      const maxHeight = window.innerHeight * 0.7;
-      const minHeight = 320;
-      const contentHeight = container.scrollHeight;
-      const newHeight = Math.min(Math.max(contentHeight, minHeight), maxHeight);
-      container.style.height = `${newHeight}px`;
-    }
-  }, [messages, isOpen]); */
 
   // clean up on unmount
   useEffect(() => {
@@ -102,6 +91,7 @@ export function Chatbot() {
       setSessionAccepted(false);
       setSessionEnded(false);
       sessionEndedRef.current = false;
+      pollAttemptsRef.current = 0;
     }
   }, [isOpen]);
 
@@ -112,82 +102,99 @@ export function Chatbot() {
     }
   }
 
-  // In the startPolling function, update the fetch call:
-async function startPolling(sid: string) {
-  if (!sid) return;
-  stopPolling();
-  escalationStartedAt.current = Date.now();
-  lastOwnerIndexRef.current = 0;
-  setSessionEnded(false);
-  sessionEndedRef.current = false;
+  async function startPolling(sid: string) {
+    if (!sid) return;
+    stopPolling();
+    escalationStartedAt.current = Date.now();
+    lastOwnerIndexRef.current = 0;
+    setSessionEnded(false);
+    sessionEndedRef.current = false;
+    pollAttemptsRef.current = 0;
 
-  pollRef.current = window.setInterval(async () => {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-      
-      const res = await fetch(`/api/session-status?sessionId=${encodeURIComponent(sid)}`, {
-        method: "GET",
-        cache: "no-store",
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeout);
-      
-      if (res.status === 404) {
-        console.log(`❌ Session ${sid} not found, stopping polling`);
-        handleSessionEnd("Session expired. Please start a new chat if you need assistance.");
-        return;
-      }
-      
-      if (!res.ok) {
-        console.warn(`⚠️ Session status returned ${res.status}`);
-        return;
-      }
-      
-      const payload = await res.json().catch(() => null);
-      if (!payload) return;
+    console.log(`🔄 Starting polling for session: ${sid}`);
 
-      // Handle accepted session
-      if (payload.status === "accepted") {
-        setSessionAccepted(true);
-        setWaitingForHuman(false);
-        setSessionEnded(false);
-
-        const ownerMessages: { text: string; at: number }[] = payload.session?.ownerMessages || [];
-        const last = lastOwnerIndexRef.current || 0;
-        if (ownerMessages.length > last) {
-          const newMsgs = ownerMessages.slice(last);
-          newMsgs.forEach((om) => {
-            const m: Message = {
-              id: `owner_${Date.now()}_${Math.random().toString(36).slice(2,9)}`,
-              text: om.text,
-              sender: "owner",
-              timestamp: new Date(om.at),
-            };
-            setMessages((prev) => [...prev, m]);
-          });
-          lastOwnerIndexRef.current = ownerMessages.length;
+    pollRef.current = window.setInterval(async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+        
+        const res = await fetch(`/api/session-status?sessionId=${encodeURIComponent(sid)}`, {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeout);
+        
+        if (res.status === 404) {
+          pollAttemptsRef.current += 1;
+          console.log(`❌ Session ${sid} not found (attempt ${pollAttemptsRef.current}/${MAX_POLL_ATTEMPTS})`);
+          
+          // Only end session after multiple consecutive failures
+          if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+            console.log(`🛑 Max polling attempts reached for session ${sid}, stopping`);
+            handleSessionEnd("Unable to establish live chat connection. Please try again or contact Abel directly.");
+            return;
+          }
+          
+          // Continue polling on 404 - session might not be saved yet
+          return;
         }
-      } else if (payload.status === "pending") {
-        // Still waiting
-        setSessionEnded(false);
-      }
+        
+        if (!res.ok) {
+          console.warn(`⚠️ Session status returned ${res.status}`);
+          return;
+        }
+        
+        // Reset attempt counter on successful response
+        pollAttemptsRef.current = 0;
+        
+        const payload = await res.json().catch(() => null);
+        if (!payload) return;
 
-      // Handle session end from server
-      if (payload.session && payload.session.accepted === false && payload.session.endedAt && !sessionEndedRef.current) {
-        handleSessionEnd("Abel has ended the live chat session. You can continue chatting with AI assistant.");
-      }
+        console.log(`✅ Session status: ${payload.status}`, payload.session);
 
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
-        // timeout - ignore
-      } else {
-        console.error("[poll] error", err);
+        // Handle accepted session
+        if (payload.status === "accepted") {
+          setSessionAccepted(true);
+          setWaitingForHuman(false);
+          setSessionEnded(false);
+
+          const ownerMessages: { text: string; at: number }[] = payload.session?.ownerMessages || [];
+          const last = lastOwnerIndexRef.current || 0;
+          if (ownerMessages.length > last) {
+            const newMsgs = ownerMessages.slice(last);
+            newMsgs.forEach((om) => {
+              const m: Message = {
+                id: `owner_${Date.now()}_${Math.random().toString(36).slice(2,9)}`,
+                text: om.text,
+                sender: "owner",
+                timestamp: new Date(om.at),
+              };
+              setMessages((prev) => [...prev, m]);
+            });
+            lastOwnerIndexRef.current = ownerMessages.length;
+          }
+        } else if (payload.status === "pending") {
+          // Still waiting - this is normal
+          setSessionEnded(false);
+          console.log(`⏳ Session ${sid} still pending acceptance`);
+        }
+
+        // Handle session end from server (only if explicitly ended)
+        if (payload.session && payload.session.endedAt && !sessionEndedRef.current) {
+          handleSessionEnd("Abel has ended the live chat session. You can continue chatting with AI assistant.");
+        }
+
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          // timeout - ignore
+        } else {
+          console.error("[poll] error", err);
+        }
       }
-    }
-  }, POLL_INTERVAL_MS);
-}
+    }, POLL_INTERVAL_MS);
+  }
 
   const handleSessionEnd = (message: string) => {
     sessionEndedRef.current = true;
@@ -250,7 +257,21 @@ async function startPolling(sid: string) {
         setSessionId(result.sessionId);
         setSessionAccepted(false);
         lastOwnerIndexRef.current = 0;
-        startPolling(result.sessionId);
+        
+        // Add a waiting message
+        const waitingMessage: Message = {
+          id: `waiting_${Date.now()}`,
+          text: "I've notified Abel that you'd like to chat! He'll join this conversation shortly. In the meantime, feel free to ask me any other questions.",
+          sender: "bot",
+          timestamp: new Date(),
+          escalated: true,
+        };
+        setMessages((prev) => [...prev, waitingMessage]);
+        
+        // Start polling with a slight delay to allow session to be saved
+        setTimeout(() => {
+          startPolling(result.sessionId!);
+        }, 1000);
       }
 
       // IMPORTANT: suppress AI replies when live chat active.
@@ -302,12 +323,7 @@ async function startPolling(sid: string) {
 
       {isOpen && (
         <Card
-          // ref={chatContainerRef}
           className="fixed py-2 gap-2 bottom-20 sm:bottom-20 right-4 sm:right-6 z-20 w-full sm:w-110 max-w-[calc(100vw-2rem)] h-80 sm:h-96 flex flex-col shadow-xl border-2 border-secondary rounded-lg"
-          /* style={{
-            minHeight: '320px',
-            maxHeight: '70vh'
-          }} */
         >
           <div className="bg-primary text-white p-1 sm:p-2 rounded-t-lg border-b">
             <div className="flex items-center justify-between">
@@ -323,10 +339,17 @@ async function startPolling(sid: string) {
                 </div>
               )}
 
+              {waitingForHuman && !sessionEnded && (
+                <div className="flex items-center gap-1 bg-yellow-500 text-black px-2 py-1 rounded-full text-xs">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>Waiting for Abel...</span>
+                </div>
+              )}
+
               {sessionEnded && (
                 <div className="flex items-center gap-1 bg-amber-500 text-black px-2 py-1 rounded-full text-xs">
                   <AlertCircle className="h-3 w-3" />
-                  <span>Chat ended by Abel</span>
+                  <span>Chat ended</span>
                 </div>
               )}
             </div>
@@ -392,17 +415,17 @@ async function startPolling(sid: string) {
               </Button>
             </div>
 
-            {waitingForHuman && (
-              <div className="mt-2 flex items-center justify-center gap-2 text-xs text-green-600">
-                <User className="h-3 w-3" />
-                <span>Abel has been notified and will respond shortly</span>
+            {waitingForHuman && !sessionEnded && (
+              <div className="mt-2 flex items-center justify-center gap-2 text-xs text-yellow-600">
+                <AlertCircle className="h-3 w-3" />
+                <span>Waiting for Abel to join the chat... (This may take a moment)</span>
               </div>
             )}
 
             {sessionEnded && (
               <div className="mt-2 flex items-center justify-center gap-2 text-xs text-amber-600">
                 <AlertCircle className="h-3 w-3" />
-                <span>Abel ended the chat. You can continue with me.</span>
+                <span>Chat ended. You can continue with me.</span>
               </div>
             )}
           </form>

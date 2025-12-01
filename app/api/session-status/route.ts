@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/telegram";
 
-export async function GET(request: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const sessionId = url.searchParams.get("sessionId");
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get("sessionId");
     
     if (!sessionId) {
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
@@ -18,15 +20,30 @@ export async function GET(request: Request) {
       console.log(`❌ [session-status] Session ${sessionId} not found`);
       return NextResponse.json({ 
         status: "not_found",
-        message: "Session not found or expired"
+        message: "Session not found"
       }, { status: 404 });
     }
 
+    // Debug timestamp info
+    const now = Date.now();
+    const sessionAge = now - session.createdAt;
+    const isFuture = sessionAge < 0;
+    
     console.log(`✅ [session-status] Session found:`, {
       sessionId: session.sessionId,
       accepted: session.accepted,
-      visitorName: session.visitorName
+      visitorName: session.visitorName,
+      createdAt: new Date(session.createdAt).toISOString(),
+      now: new Date(now).toISOString(),
+      age: sessionAge,
+      isFuture: isFuture
     });
+
+    // If session has future timestamp, still return it but with a warning
+    if (isFuture) {
+      console.warn(`⚠️ [session-status] Session ${sessionId} has future timestamp but returning anyway`);
+      // Don't return 404 - let the client handle it
+    }
 
     return NextResponse.json({
       status: session.accepted ? "accepted" : "pending",
@@ -42,6 +59,11 @@ export async function GET(request: Request) {
         acceptedBy: session.acceptedBy,
         lastActivityAt: session.lastActivityAt,
       },
+      _meta: {
+        timestampValid: !isFuture,
+        serverTime: now,
+        sessionTime: session.createdAt
+      }
     });
   } catch (error) {
     console.error("❌ [session-status] Error:", error);
