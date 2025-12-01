@@ -102,99 +102,54 @@ export function Chatbot() {
     }
   }
 
-  async function startPolling(sid: string) {
-    if (!sid) return;
-    stopPolling();
-    escalationStartedAt.current = Date.now();
-    lastOwnerIndexRef.current = 0;
-    setSessionEnded(false);
-    sessionEndedRef.current = false;
-    pollAttemptsRef.current = 0;
-
-    console.log(`🔄 Starting polling for session: ${sid}`);
-
-    pollRef.current = window.setInterval(async () => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  // Replace the startPolling function:
+async function startPolling(sid: string) {
+  if (!sid) return;
+  
+  stopPolling();
+  setSessionEnded(false);
+  
+  console.log(`🔄 Starting polling for: ${sid}`);
+  
+  pollRef.current = window.setInterval(async () => {
+    try {
+      const res = await fetch(`/api/session-status?sessionId=${sid}`);
+      
+      if (res.ok) {
+        const data = await res.json();
         
-        const res = await fetch(`/api/session-status?sessionId=${encodeURIComponent(sid)}`, {
-          method: "GET",
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeout);
-        
-        if (res.status === 404) {
-          pollAttemptsRef.current += 1;
-          console.log(`❌ Session ${sid} not found (attempt ${pollAttemptsRef.current}/${MAX_POLL_ATTEMPTS})`);
-          
-          // Only end session after multiple consecutive failures
-          if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
-            console.log(`🛑 Max polling attempts reached for session ${sid}, stopping`);
-            handleSessionEnd("Unable to establish live chat connection. Please try again or contact Abel directly.");
-            return;
-          }
-          
-          // Continue polling on 404 - session might not be saved yet
-          return;
-        }
-        
-        if (!res.ok) {
-          console.warn(`⚠️ Session status returned ${res.status}`);
-          return;
-        }
-        
-        // Reset attempt counter on successful response
-        pollAttemptsRef.current = 0;
-        
-        const payload = await res.json().catch(() => null);
-        if (!payload) return;
-
-        console.log(`✅ Session status: ${payload.status}`, payload.session);
-
-        // Handle accepted session
-        if (payload.status === "accepted") {
+        if (data.status === "accepted") {
           setSessionAccepted(true);
           setWaitingForHuman(false);
-          setSessionEnded(false);
-
-          const ownerMessages: { text: string; at: number }[] = payload.session?.ownerMessages || [];
-          const last = lastOwnerIndexRef.current || 0;
-          if (ownerMessages.length > last) {
-            const newMsgs = ownerMessages.slice(last);
-            newMsgs.forEach((om) => {
-              const m: Message = {
-                id: `owner_${Date.now()}_${Math.random().toString(36).slice(2,9)}`,
-                text: om.text,
+          console.log("✅ Session accepted!");
+          
+          // Show any owner messages
+          const ownerMessages = data.session.ownerMessages || [];
+          const lastIndex = lastOwnerIndexRef.current;
+          
+          if (ownerMessages.length > lastIndex) {
+            const newMessages = ownerMessages.slice(lastIndex);
+            newMessages.forEach((msg: { at: number; text: any }) => {
+              setMessages(prev => [...prev, {
+                id: `owner_${msg.at}`,
+                text: msg.text,
                 sender: "owner",
-                timestamp: new Date(om.at),
-              };
-              setMessages((prev) => [...prev, m]);
+                timestamp: new Date(msg.at * 1000),
+              }]);
             });
             lastOwnerIndexRef.current = ownerMessages.length;
           }
-        } else if (payload.status === "pending") {
-          // Still waiting - this is normal
-          setSessionEnded(false);
-          console.log(`⏳ Session ${sid} still pending acceptance`);
         }
-
-        // Handle session end from server (only if explicitly ended)
-        if (payload.session && payload.session.endedAt && !sessionEndedRef.current) {
-          handleSessionEnd("Abel has ended the live chat session. You can continue chatting with AI assistant.");
-        }
-
-      } catch (err: any) {
-        if (err?.name === "AbortError") {
-          // timeout - ignore
-        } else {
-          console.error("[poll] error", err);
-        }
+        // If pending, just continue polling
+      } else if (res.status === 404) {
+        console.log(`❌ Session ${sid} not found`);
+        // Don't immediately end - keep polling for a while
       }
-    }, POLL_INTERVAL_MS);
-  }
+    } catch (error) {
+      console.error("Polling error:", error);
+    }
+  }, 3000);
+}
 
   const handleSessionEnd = (message: string) => {
     sessionEndedRef.current = true;

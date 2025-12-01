@@ -1,5 +1,6 @@
+// app/api/session-status/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/telegram";
+import { getSession } from "@/lib/simple-sessions";
 
 export const dynamic = 'force-dynamic';
 
@@ -12,63 +13,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
     }
 
-    console.log(`🔍 [session-status] Looking for session: ${sessionId}`);
+    console.log(`🔍 Checking session: ${sessionId}`);
     
     const session = await getSession(sessionId);
     
     if (!session) {
-      console.log(`❌ [session-status] Session ${sessionId} not found`);
+      console.log(`❌ Session not found: ${sessionId}`);
       return NextResponse.json({ 
         status: "not_found",
         message: "Session not found"
       }, { status: 404 });
     }
 
-    // Debug timestamp info
-    const now = Date.now();
-    const sessionAge = now - session.createdAt;
-    const isFuture = sessionAge < 0;
+    // ALWAYS return the session, regardless of timestamp issues
+    console.log(`✅ Session found: ${sessionId}, accepted: ${session.accepted}`);
     
-    console.log(`✅ [session-status] Session found:`, {
-      sessionId: session.sessionId,
-      accepted: session.accepted,
-      visitorName: session.visitorName,
-      createdAt: new Date(session.createdAt).toISOString(),
-      now: new Date(now).toISOString(),
-      age: sessionAge,
-      isFuture: isFuture
-    });
-
-    // If session has future timestamp, still return it but with a warning
-    if (isFuture) {
-      console.warn(`⚠️ [session-status] Session ${sessionId} has future timestamp but returning anyway`);
-      // Don't return 404 - let the client handle it
-    }
-
     return NextResponse.json({
       status: session.accepted ? "accepted" : "pending",
-      session: {
-        sessionId: session.sessionId,
-        visitorName: session.visitorName,
-        email: session.email,
-        pageUrl: session.pageUrl,
-        createdAt: session.createdAt,
-        ownerMessages: session.ownerMessages || [],
-        userMessages: session.userMessages || [],
-        accepted: session.accepted || false,
-        acceptedBy: session.acceptedBy,
-        lastActivityAt: session.lastActivityAt,
-      },
-      _meta: {
-        timestampValid: !isFuture,
-        serverTime: now,
-        sessionTime: session.createdAt
-      }
+      session: session
     });
+    
   } catch (error) {
-    console.error("❌ [session-status] Error:", error);
+    console.error("❌ Session status error:", error);
     return NextResponse.json({ 
-      error: "Internal server error" 
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

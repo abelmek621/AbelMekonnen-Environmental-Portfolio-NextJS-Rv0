@@ -3,8 +3,9 @@
 
 import { generateText } from "ai"
 import { groq } from "@ai-sdk/groq"
-import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, getSession, saveSession } from "@/lib/telegram";
+import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, getSession, saveSession } from "@/lib/simple-sessions";
 import { triggerWorkflow } from "@/lib/qstash";
+import { TelegramBot } from "@/lib/telegram";
 
 const portfolioContext = `
 You are an AI assistant for an Abel Mekonnen's portfolio website. Abel Mekonnen is Senior Environmental Expert. You have access to the following information about the expert, Abel Mekonnen:
@@ -134,60 +135,34 @@ export async function chat(
 
     // 2) Check if this message should escalate to human
     // In the chat function, replace the escalation section:
+    // In the chat function, replace the escalation logic:
     if (shouldEscalateToHuman(message) && !sessionId) {
-      console.log("🚨 User requested human support - creating session");
+      console.log("🚨 Escalating to human...");
 
-      const newSessionId = generateSessionId();
-      const sessionObj = {
-        sessionId: newSessionId,
-        visitorName: userData?.name || "Website Visitor",
-        email: userData?.email || "not-provided",
-        pageUrl: userData?.currentPage || "unknown",
-        message: message,
-        createdAt: Date.now(),
-        accepted: false,
-        acceptedBy: null,
-        ownerMessages: [],
-        userMessages: [{ text: message, at: Date.now(), name: userData?.name || "Visitor" }],
-        lastActivityAt: Date.now(),
-      };
-
-      // Save session using the new reliable method
-      const saved = await saveSession(sessionObj);
-      if (!saved) {
-        console.error("[chat] CRITICAL: Failed to save session to storage");
-        return {
-          response: "I apologize, but I'm having trouble connecting to the live chat service. Please try again later or contact me directly at mekonnengebretsadikabel@gmail.com",
-        };
-      }
-
-      console.log(`✅ [chat] Session ${newSessionId} saved successfully, sending Telegram notification`);
-
-      // Send Telegram notification
       try {
-        const telegram = new TelegramNotifier();
-        const result = await telegram.sendLiveChatRequest({
-          sessionId: newSessionId,
-          visitorName: userData?.name || "Website Visitor",
+        const telegram = new TelegramBot();
+        const result = await telegram.sendLiveChatNotification({
+          visitorName: userData?.name,
           message: message,
-          pageUrl: userData?.currentPage || "unknown",
-          email: userData?.email || "not-provided",
+          pageUrl: userData?.currentPage,
+          email: userData?.email
         });
-        
+
         if (result.success) {
           return {
-            response: "I've just sent a notification to Abel! He'll join this chat shortly to provide personalized assistance.",
+            response: "I've notified Abel that you'd like to chat! He'll join this conversation shortly.",
             escalated: true,
-            sessionId: newSessionId,
+            sessionId: result.sessionId,
           };
-        } else {
-          console.error("[chat] Telegram notification failed:", result.error);
-          // Continue with AI response
         }
-      } catch (telegramErr) {
-        console.error("[chat] Telegram error:", telegramErr);
-        // Continue with AI response
+      } catch (error) {
+        console.error("Failed to send Telegram notification:", error);
       }
+
+      // Fallback response if Telegram fails
+      return {
+        response: "I'd be happy to connect you with Abel! Please contact him directly at mekonnengebretsadikabel@gmail.com or +251-983-34-2060.",
+      };
     }
 
     // 3) Normal AI processing - FIXED VERSION
