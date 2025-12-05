@@ -1,23 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
 
-let redis: Redis | null = null;
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
-try {
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    });
+// Initialize Redis client safely
+const getRedisClient = () => {
+  try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      return new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
+    }
+    return null;
+  } catch (error) {
+    console.error("Redis initialization error:", error);
+    return null;
   }
-} catch (error) {
-  console.error("Redis init error:", error);
-}
+};
 
 export async function GET() {
   try {
+    const redis = getRedisClient();
     if (!redis) {
-      return NextResponse.json({ error: "Redis not configured" }, { status: 500 });
+      return NextResponse.json({ 
+        error: "Redis not configured",
+        env: {
+          hasUrl: !!process.env.UPSTASH_REDIS_REST_URL,
+          hasToken: !!process.env.UPSTASH_REDIS_REST_TOKEN
+        }
+      }, { status: 500 });
     }
 
     // Get all session keys
@@ -25,18 +38,22 @@ export async function GET() {
     const sessions = [];
 
     for (const key of sessionKeys) {
-      const sessionData = await redis.get(key);
-      if (sessionData) {
-        const session = JSON.parse(sessionData as string);
-        sessions.push({
-          key,
-          sessionId: session.sessionId,
-          visitorName: session.visitorName,
-          accepted: session.accepted,
-          createdAt: new Date(session.createdAt).toISOString(),
-          lastActivityAt: new Date(session.lastActivityAt).toISOString(),
-          acceptedBy: session.acceptedBy,
-        });
+      try {
+        const sessionData = await redis.get(key);
+        if (sessionData) {
+          const session = JSON.parse(sessionData as string);
+          sessions.push({
+            key,
+            sessionId: session.sessionId,
+            visitorName: session.visitorName,
+            accepted: session.accepted,
+            createdAt: new Date(session.createdAt).toISOString(),
+            lastActivityAt: new Date(session.lastActivityAt).toISOString(),
+            acceptedBy: session.acceptedBy,
+          });
+        }
+      } catch (e) {
+        console.error(`Error parsing session from key ${key}:`, e);
       }
     }
 
@@ -44,12 +61,16 @@ export async function GET() {
     const msgKeys = await redis.keys("livechat:msg2sess:*");
     const messageMappings = [];
     
-    for (const key of msgKeys.slice(0, 10)) { // Limit to first 10
-      const sessionId = await redis.get(key);
-      messageMappings.push({
-        messageKey: key,
-        sessionId
-      });
+    for (const key of msgKeys.slice(0, 10)) {
+      try {
+        const sessionId = await redis.get(key);
+        messageMappings.push({
+          messageKey: key,
+          sessionId
+        });
+      } catch (e) {
+        console.error(`Error getting message mapping from key ${key}:`, e);
+      }
     }
 
     return NextResponse.json({
@@ -60,11 +81,14 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Redis debug error:", error);
-    return NextResponse.json({ error: "Failed to debug Redis" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to debug Redis",
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
@@ -73,6 +97,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
     }
 
+    const redis = getRedisClient();
     if (!redis) {
       return NextResponse.json({ error: "Redis not configured" }, { status: 500 });
     }
@@ -82,6 +107,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true, message: `Session ${sessionId} deleted` });
   } catch (error) {
     console.error("Redis delete error:", error);
-    return NextResponse.json({ error: "Failed to delete session" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to delete session",
+      message: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }

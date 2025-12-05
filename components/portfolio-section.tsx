@@ -53,7 +53,16 @@ export function PortfolioSection() {
           </div>
           
           {/* Map Section - Increased height */}
-          <div className="mb-16">
+          <div className="hidden md:block mb-16">
+            <ProjectMap 
+              projects={precomputedProjects} 
+              height={'76vh'} 
+              centerProjectId={selectedProjectId} 
+            />
+          </div>
+
+          {/* Map Section - for Mobile Screens */}
+          <div className="md:hidden">
             <ProjectMap 
               projects={precomputedProjects} 
               height={'84vh'} 
@@ -62,7 +71,7 @@ export function PortfolioSection() {
           </div>
 
           {/* Portfolio Cards Section */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="hidden md:grid lg:grid-cols-3 gap-8">
             {cardProjects.map((project, index) => (
               <div
                 key={project.id}
@@ -147,6 +156,91 @@ export function PortfolioSection() {
             ))}
           </div>
         </div>
+        {/* Portfolio Cards Section - for Mobile Screens */}
+          <div className="md:hidden space-y-4 mt-4 ml-10 mr-10">
+            {cardProjects.map((project, index) => (
+              <div
+                key={project.id}
+                onClick={() => handleCardClick(project)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(project); }}
+                className="block group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+              >
+                <Card className="h-full overflow-hidden border-2 hover:border-primary transition-colors py-0">
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={project.imageThumb || project.image || "/placeholder.svg"}
+                      width={400} 
+                      height={260} 
+                      alt={project.title} 
+                      // className="object-cover"
+                      className="w-full h-40 object-cover mb-0 group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <Badge variant="secondary" className="bg-primary/90 text-background/90">
+                        {project.category}
+                      </Badge>
+                    </div>
+                    {project.year && (
+                      <div className="absolute top-12 left-4">
+                        <Badge variant="secondary" className="bg-background/90 italic text-xs">
+                          {project.year}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* External link icon */}
+                    <div className="absolute top-4 right-4 z-20"> {/* Added z-20 */}
+                      {project.link ? (
+                        <a
+                          href={project.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(ev) => ev.stopPropagation()}
+                          className="p-1 transition-colors z-30"
+                          aria-label={`Open ${project.title}`}
+                        >
+                          <ExternalLink className="h-6 w-6 text-muted-foreground hover:text-foreground" />
+                        </a>
+                      ) : (
+                        <div className="p-1">
+                          <ExternalLink className="h-6 w-6 text-muted-foreground opacity-40" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <div className="text-white text-sm font-semibold">View on map</div>
+                    </div>
+                  </div>
+
+                  <CardHeader>
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors mt-0 pb-0 gap-0">
+                      {project.title}
+                    </CardTitle>
+                  </CardHeader>
+
+                  <CardContent className="space-y-1 mt-0 mb-0">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
+
+                    {/* <div className="flex flex-wrap gap-1">
+                      {project.tags?.map((tag: string) => (
+                        <span key={tag} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                          {tag}
+                        </span>
+                      ))}
+                    </div> */}
+
+                    <div className="pb-2 pt-2 border-t border-border">
+                      <p className="text-sm font-medium text-primary">{project.impact}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
       </div>
     </section>
   );

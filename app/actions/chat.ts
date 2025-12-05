@@ -1,11 +1,9 @@
-// app/actions/chat.ts
 "use server"
 
 import { generateText } from "ai"
 import { groq } from "@ai-sdk/groq"
-import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, getSession, saveSession } from "@/lib/simple-sessions";
+import { TelegramNotifier, shouldEscalateToHuman, generateSessionId, getSession, saveSession } from "@/lib/telegram";
 import { triggerWorkflow } from "@/lib/qstash";
-import { TelegramBot } from "@/lib/telegram";
 
 const portfolioContext = `
 You are an AI assistant for an Abel Mekonnen's portfolio website. Abel Mekonnen is Senior Environmental Expert. You have access to the following information about the expert, Abel Mekonnen:
@@ -134,35 +132,77 @@ export async function chat(
     }
 
     // 2) Check if this message should escalate to human
-    // In the chat function, replace the escalation section:
-    // In the chat function, replace the escalation logic:
     if (shouldEscalateToHuman(message) && !sessionId) {
-      console.log("🚨 Escalating to human...");
+      console.log("🚨 User requested human support - creating session");
 
-      try {
-        const telegram = new TelegramBot();
-        const result = await telegram.sendLiveChatNotification({
-          visitorName: userData?.name,
-          message: message,
-          pageUrl: userData?.currentPage,
-          email: userData?.email
-        });
-
-        if (result.success) {
-          return {
-            response: "I've notified Abel that you'd like to chat! He'll join this conversation shortly.",
-            escalated: true,
-            sessionId: result.sessionId,
-          };
-        }
-      } catch (error) {
-        console.error("Failed to send Telegram notification:", error);
-      }
-
-      // Fallback response if Telegram fails
-      return {
-        response: "I'd be happy to connect you with Abel! Please contact him directly at mekonnengebretsadikabel@gmail.com or +251-983-34-2060.",
+      const newSessionId = generateSessionId();
+      const sessionObj = {
+        sessionId: newSessionId,
+        visitorName: userData?.name || "Website Visitor",
+        email: userData?.email || "not-provided",
+        pageUrl: userData?.currentPage || "unknown",
+        message: message,
+        createdAt: Date.now(),
+        accepted: false,
+        acceptedBy: null,
+        ownerMessages: [],
+        userMessages: [{ text: message, at: Date.now(), name: userData?.name || "Visitor" }],
+        lastActivityAt: Date.now(),
       };
+
+      // Save session first
+      const saved = await saveSession(sessionObj);
+      if (!saved) {
+        console.error("[chat] Failed to save session, continuing with AI");
+        // Continue with AI response
+      } else {
+        // Try to notify admin via workflow first
+        const wfPayload = {
+          sessionId: newSessionId,
+          visitorName: userData?.name || "Website Visitor",
+          message: message,
+          pageUrl: userData?.currentPage || "unknown",
+          email: userData?.email || "not-provided",
+        };
+
+        try {
+          await triggerWorkflow(wfPayload, "/api/workflow");
+          console.log("[chat] Workflow triggered for session:", newSessionId);
+          
+          return {
+            response: "I've notified Abel that you'd like to chat! He'll join this conversation shortly. In the meantime, feel free to ask me any other questions.",
+            escalated: true,
+            sessionId: newSessionId,
+          };
+        } catch (workflowErr) {
+          console.error("[chat] Workflow failed, falling back to direct Telegram:", workflowErr);
+          
+          // Fallback to direct Telegram notification
+          try {
+            const telegram = new TelegramNotifier();
+            const result = await telegram.sendLiveChatRequest({
+              sessionId: newSessionId,
+              visitorName: userData?.name || "Website Visitor",
+              message: message,
+              pageUrl: userData?.currentPage || "unknown",
+              email: userData?.email || "not-provided",
+            });
+            
+            if (result.success) {
+              return {
+                response: "I've just sent a notification to Abel! He'll join this chat shortly to provide personalized assistance.",
+                escalated: true,
+                sessionId: newSessionId,
+              };
+            }
+          } catch (telegramErr) {
+            console.error("[chat] Telegram fallback also failed:", telegramErr);
+          }
+          
+          // If all escalation methods fail, continue with AI
+          console.warn("[chat] All escalation methods failed, continuing with AI");
+        }
+      }
     }
 
     // 3) Normal AI processing - FIXED VERSION

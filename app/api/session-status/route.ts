@@ -1,7 +1,7 @@
-// app/api/session-status/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/simple-sessions";
+import { getSession } from "@/lib/telegram";
 
+// Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -13,31 +13,43 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
     }
 
-    console.log(`🔍 Checking session: ${sessionId}`);
+    console.log(`🔍 [session-status] Looking for session: ${sessionId}`);
     
     const session = await getSession(sessionId);
     
     if (!session) {
-      console.log(`❌ Session not found: ${sessionId}`);
+      console.log(`❌ [session-status] Session ${sessionId} not found`);
       return NextResponse.json({ 
         status: "not_found",
-        message: "Session not found"
+        message: "Session not found or expired"
       }, { status: 404 });
     }
 
-    // ALWAYS return the session, regardless of timestamp issues
-    console.log(`✅ Session found: ${sessionId}, accepted: ${session.accepted}`);
-    
+    console.log(`✅ [session-status] Session found:`, {
+      sessionId: session.sessionId,
+      accepted: session.accepted,
+      visitorName: session.visitorName
+    });
+
     return NextResponse.json({
       status: session.accepted ? "accepted" : "pending",
-      session: session
+      session: {
+        sessionId: session.sessionId,
+        visitorName: session.visitorName,
+        email: session.email,
+        pageUrl: session.pageUrl,
+        createdAt: session.createdAt,
+        ownerMessages: session.ownerMessages || [],
+        userMessages: session.userMessages || [],
+        accepted: session.accepted || false,
+        acceptedBy: session.acceptedBy,
+        lastActivityAt: session.lastActivityAt,
+      },
     });
-    
   } catch (error) {
-    console.error("❌ Session status error:", error);
+    console.error("❌ [session-status] Error:", error);
     return NextResponse.json({ 
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : String(error)
+      error: "Internal server error" 
     }, { status: 500 });
   }
 }

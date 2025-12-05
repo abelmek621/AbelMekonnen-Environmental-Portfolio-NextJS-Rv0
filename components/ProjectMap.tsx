@@ -154,7 +154,7 @@ interface ProjectMapProps {
 }
 
 /** Main exported component */
-export default function ProjectMap({ projects = [], height = '70vh', centerProjectId = null }: ProjectMapProps) {
+export default function ProjectMap({ projects = [], height = '76vh', centerProjectId = null }: ProjectMapProps) {
   const defaultCenter: [number, number] = [9.145, 40.489]; // Ethiopia center
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [isClient, setIsClient] = useState(false);
@@ -243,13 +243,13 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
   return (
     <div className="w-full">
       {/* Filter controls */}
-      <div className="flex flex-wrap gap-2 items-center mb-3">
+      <div className="hidden md:flex flex-wrap gap-1 items-center mb-3">
         <div className="text-sm font-medium mr-2">Filter:</div>
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
-            className={`px-3 py-1 rounded-full text-sm border transition-all whitespace-nowrap ${
+            className={`px-2 py-1 rounded-full text-sm border transition-all whitespace-nowrap ${
               activeCategory === cat ? 'bg-primary/10 border-primary text-primary' : 'bg-background/80 border-border'
             }`}
           >
@@ -263,9 +263,30 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
           Showing {uniqueVisibleProjects} / {totalProjectsWithFeatures} projects
         </div>
       </div>
+      {/* Filter controls for mobile screens */}
+      <div className="md:hidden flex flex-wrap gap-3 items-center mb-3">
+        <div className="ml-2 text-sm font-medium mr-1">Filter:</div>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-1 py-1 rounded-full text-xs border transition-all whitespace-nowrap ${
+              activeCategory === cat ? 'bg-primary/10 border-primary text-primary' : 'bg-background/80 border-border'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+        {/* <div className="text-xs text-muted-foreground">
+          Tap markers to open details. Use the filter buttons to show specific project categories.
+        </div> */}
+        <div className="mr-2 ml-auto text-xs text-muted-foreground">
+          {uniqueVisibleProjects} / {totalProjectsWithFeatures}
+        </div>
+      </div>
 
       {/* Map container */}
-      <div style={containerStyle} className="shadow-sm border">
+      <div style={containerStyle} className="hidden md:block shadow-sm border">
         <MapContainer
           key="project-map" // Add key to force clean remount
           center={defaultCenter}
@@ -281,7 +302,7 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
           />
 
           {/* Add MapLegend component here if you want it inside */}
-          <MapLegend />
+          {/* <MapLegend /> */}
 
           {/* Transmission Lines */}
           {transmissionLineProjects.map((p) => (
@@ -442,14 +463,195 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
         </MapContainer>
       </div>
 
+      {/* Map container - for mobile screens */}
+      <div style={containerStyle} className="md:hidden shadow-sm border">
+        <MapContainer
+          key="project-map" // Add key to force clean remount
+          center={defaultCenter}
+          zoom={6}
+          minZoom={4}
+          maxZoom={18}
+          style={{ height: '100%', width: '100%' }}
+          scrollWheelZoom={true}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {/* Add MapLegend component here if you want it inside */}
+          {/* <MapLegend /> */}
+
+          {/* Transmission Lines */}
+          {transmissionLineProjects.map((p) => (
+            <Polyline
+              key={`line-${p.id}`}
+              positions={p.path as L.LatLngExpression[]}
+              pathOptions={{ 
+                color: '#DC2626', 
+                weight: 3, 
+                dashArray: '8 6',
+                opacity: 0.8
+              }}
+              eventHandlers={{
+                dblclick: (e) => {
+                  e.originalEvent.stopPropagation();
+                  const map = e.target._map;
+                  if (map && p.path && p.path.length > 0) {
+                    const latlngs = p.path.map(coord => L.latLng(coord[0], coord[1]));
+                    const bounds = L.latLngBounds(latlngs);
+                    map.fitBounds(bounds, { padding: [20, 20] });
+                  }
+                }
+              }}
+            >
+              <Popup>
+                <div style={{ maxWidth: 280, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
+                  <h3 style={{ fontWeight: 700, marginBottom: 2, fontSize: '12px' }}>{p.title}</h3>
+                  <p style={{ fontSize: 11, marginBottom: 4, lineHeight: '1.4' }}>{p.description}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '10px', color: '#F59E0B', fontWeight: '600' }}>
+                    <div style={{ 
+                      width: '16px', 
+                      height: '16px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}
+                      dangerouslySetInnerHTML={{ __html: mapSVG }}
+                    />
+                    <span>Transmission Line Project</span>
+                  </div>
+                  {/* {p.tags && p.tags.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      {p.tags.map((tag, index) => (
+                        <span 
+                          key={index}
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '11px',
+                            backgroundColor: '#f1f5f9',
+                            color: '#0ea5e9',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            marginRight: '4px',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )} */}
+                  {p.link && (
+                    <a 
+                      href={p.link} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      style={{ 
+                        color: '#0ea5e9', 
+                        fontWeight: 600, 
+                        textDecoration: 'none',
+                        fontSize: '11px'
+                      }}
+                    >
+                      Open project ↗
+                    </a>
+                  )}
+                </div>
+              </Popup>
+            </Polyline>
+          ))}
+
+          {/* Point markers */}
+          {pointProjects.map((p) => (
+            <Marker
+              key={p.id}
+              position={[p.lat as number, p.lng as number]}
+              icon={getIconForCategory(p.category)}
+              eventHandlers={{
+                dblclick: (e) => {
+                  e.originalEvent.stopPropagation();
+                  const map = e.target._map;
+                  if (map) {
+                    map.flyTo([p.lat, p.lng], 13, { 
+                      animate: true, 
+                      duration: 0.8 
+                    });
+                  }
+                }
+              }}
+            >
+              <Popup minWidth={220} maxWidth={360}>
+                <div style={{ maxWidth: 320, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
+                  <h3 style={{ fontWeight: 700, marginBottom: 2, fontSize: '12px' }}>{p.title}</h3>
+                  {/* {(p.imageThumb || p.image) ? (
+                    <img
+                      src={p.imageThumb || p.image}
+                      alt={p.title}
+                      loading="lazy"
+                      style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }}
+                    />
+                  ) : null} */}
+                  <p style={{ fontSize: 11, marginBottom: 4, lineHeight: '1.4' }}>{p.description}</p>
+                  {/* {p.tags && p.tags.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      {p.tags.map((tag, index) => (
+                        <span 
+                          key={index}
+                          style={{
+                            display: 'inline-block',
+                            fontSize: '11px',
+                            backgroundColor: '#f1f5f9',
+                            color: '#0ea5e9',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            marginRight: '4px',
+                            marginBottom: '4px'
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )} */}
+                  {p.link ? (
+                    <a 
+                      href={p.link} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      style={{ 
+                        color: '#0ea5e9', 
+                        fontWeight: 600, 
+                        textDecoration: 'none',
+                        fontSize: '11px'
+                      }}
+                    >
+                      Open project ↗
+                    </a>
+                  ) : null}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Handle fly-to & popup */}
+          <FlyToAndPopup projects={projectsWithCoordinates} centerProjectId={centerProjectId} />
+
+          <MapEvents />
+        </MapContainer>
+      </div>
+
       {/* External Legend (keep it outside for now) */}
-      {/* <div className="flex flex-wrap gap-4 mt-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-          <span>Hydrology Projects</span>
+      <div className="hidden md:flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
+        <div className="font-bold ml-10 text-foreground text-pretty text-sm">
+          Expertise:
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+          <span>Hydrology</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-primary"></div>
           <span>Air Quality & Noise</span>
         </div>
         <div className="flex items-center gap-2">
@@ -457,10 +659,32 @@ export default function ProjectMap({ projects = [], height = '70vh', centerProje
           <span>GIS & Remote Sensing</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-4 h-1 bg-red-600 opacity-80" style={{ backgroundImage: 'linear-gradient(to right, #DC2626 50%, transparent 50%)', backgroundSize: '8px 2px' }}></div>
+          <div className="w-4 h-1 bg-red-600 opacity-80" style={{ backgroundImage: 'linear-gradient(to right, #f1e6e6ff 50%, transparent 50%)', backgroundSize: '8px 4px' }}></div>
+          <span>GIS for Transmission Lines</span>
+        </div>
+      </div>
+      {/* External Legend for mobile screens */}
+      <div className="md:hidden flex flex-wrap gap-2 mt-2 mb-6 text-xs text-muted-foreground">
+        <div className="ml-2 font-bold text-foreground text-pretty text-xs">
+          Expertise:
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <span>Hydrology</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-primary"></div>
+          <span>Air Quality & Noise</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+          <span>GIS & Remote Sensing</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-4 h-1 bg-red-600 opacity-80" style={{ backgroundImage: 'linear-gradient(to right, #f1e6e6ff 50%, transparent 50%)', backgroundSize: '8px 4px' }}></div>
           <span>Transmission Lines</span>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 }
