@@ -65,7 +65,7 @@ export function Navigation() {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex flex-wrap items-center gap-6 flex-shrink-0">
+          <div className="hidden md:flex flex-wrap items-center gap-6 flex-shrink-0">
             {profilePicture.map((profile) => (
               <div key={profile.name}>
                 <img
@@ -83,6 +83,28 @@ export function Navigation() {
                 href={item.link}
               >
                 <h1 className="text-xl font-bold text-primary">ABEL MEKONNEN G.</h1> {/* Environmental Expert */}
+              </a>
+            ))}
+          </div>
+          {/* name & profile picture for mobile screens */}
+          <div className="md:hidden flex flex-wrap items-center gap-5 flex-shrink-0">
+            {profilePicture.map((profile) => (
+              <div key={profile.name}>
+                <img
+                  src={profile.image || "/placeholder.svg"}
+                  alt={profile.title}
+                  className={`rounded-full w-10 h-10 object-cover ${
+                    isScrolled ? "border-transparent" : "border" }`}
+                />
+              </div>
+            ))}
+            
+            {home.map((item) => (
+              <a 
+                key={item.title}
+                href={item.link}
+              >
+                <h1 className="text-lg font-bold text-primary">ABEL MEKONNEN G.</h1> {/* Environmental Expert */}
               </a>
             ))}
           </div>
@@ -123,7 +145,7 @@ export function Navigation() {
         {/* Enhanced Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-background w-32 ml-118">
+            <div className="px-1 pt-1 pb-1 space-y-1 sm:px-1 bg-background w-24 ml-78">
                 {navItems.map((item) => (
                   <a
                     key={item.href}
@@ -132,13 +154,14 @@ export function Navigation() {
                       text-foreground 
                       hover:text-primary
                       block
-                      px-3
-                      py-2 
+                      px-2
+                      py-1
                       rounded-md
                       text-base 
                       font-medium 
                       transition-colors
-                      duration-200"
+                      duration-200
+                      text-sm"
                     onClick={() => setIsOpen(false)}
                   >
                     {item.label}

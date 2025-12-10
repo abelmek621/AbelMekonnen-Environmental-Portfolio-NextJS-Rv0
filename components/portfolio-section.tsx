@@ -56,16 +56,16 @@ export function PortfolioSection() {
           <div className="hidden md:block mb-16">
             <ProjectMap 
               projects={precomputedProjects} 
-              height={'76vh'} 
+              height={'84vh'} 
               centerProjectId={selectedProjectId} 
             />
           </div>
 
           {/* Map Section - for Mobile Screens */}
-          <div className="md:hidden">
+          <div className="md:hidden ml-2 mr-2">
             <ProjectMap 
               projects={precomputedProjects} 
-              height={'84vh'} 
+              height={'52vh'} 
               centerProjectId={selectedProjectId} 
             />
           </div>
@@ -217,7 +217,7 @@ export function PortfolioSection() {
                   </div>
 
                   <CardHeader>
-                    <CardTitle className="text-lg group-hover:text-primary transition-colors mt-0 pb-0 gap-0">
+                    <CardTitle className="text-2sm group-hover:text-primary transition-colors mt-0 pb-0 gap-0">
                       {project.title}
                     </CardTitle>
                   </CardHeader>

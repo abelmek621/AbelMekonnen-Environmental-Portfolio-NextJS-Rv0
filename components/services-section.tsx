@@ -50,7 +50,7 @@ export function ServicesSection() {
       title: "Hydrologist",
       contact: "dessienedaw@yahoo.com",
       description:
-        " ''He excels in hydrology fieldwork—from planning to data collection. Combines rapid learning with strong communication for outstanding project outcomes.'' ",
+        " ''He excels in hydrology fieldwork—planning to data collection. Rapid learning with strong communication for outstanding project outcomes.'' ",
       image: "/images/testimonials-pics/testimonial-no-photo-3.webp",
     },
     {
@@ -58,7 +58,7 @@ export function ServicesSection() {
       title: "Environmental Consultant",
       contact: "lyn89577@gmail.com",
       description:
-        " ''His deep hydrological expertise provided the critical analysis needed for Projects. He transforms complex field data into actionable, compliant solutions.'' ",
+        " ''His deep hydrological expertise provided critical analysis needed for Projects. Transforms complex data into actionable, compliant solutions.'' ",
       image: "/images/testimonials-pics/Lyn-1.webp",
     },
     {
@@ -66,7 +66,7 @@ export function ServicesSection() {
       title: "Environmentalist",
       contact: "dejenewm@gmail.com",
       description: 
-        " ''His multidisciplinary skills and precise professional recommendations consistently enhanced our ESIA and RAP studies. An exceptional report writer.'' ",
+        " ''His multidisciplinary skills and precise professional recommendations consistently enhanced our ESIA/RAP studies. An exceptional report writer.'' ",
       image: "/images/testimonials-pics/testimonial-no-photo-3.webp",
     },
     {
@@ -74,7 +74,7 @@ export function ServicesSection() {
       title: "Social Performance Advisory Head",
       contact: "belinda@ibisconsulting.com",
       description:
-        " ''He has a exceptional ability to navigate complex environmental regulations. His work ensure compliance & builds foundation for sustainable project.'' ",
+        " ''Has exceptional ability to navigate complex environmental regulations. His work ensure compliance & builds foundation for sustainable project.'' ",
       image: "/images/testimonials-pics/belinda-1.webp",
     },
     {
@@ -82,7 +82,7 @@ export function ServicesSection() {
       title: "Environmentalist",
       contact: "essdconsult@gmail.com",
       description:
-        " ''Consistently delivers exceptional work. His strong report writing and communication skills make him a valuable asset on any environmental project.'' ",
+        " ''Strong report writing and communication skills-consistently delivering exceptional work-make him a valuable asset on any ESIA project.'' ",
       image: "/images/testimonials-pics/testimonial-no-photo-3.webp",
     },
     {
@@ -94,7 +94,7 @@ export function ServicesSection() {
       image: "/images/testimonials-pics/lelisa-1.webp",
     },
     {
-      name: "DAWIT DAGNE (DR.)",
+      name: "DAWIT DAGNE",
       title: "Social Expert",
       contact: "dave14da@gmail.com",
       description:
@@ -114,7 +114,7 @@ export function ServicesSection() {
       title: "Noise Consultant",
       contact: "jjltenkate@gmail.com",
       description:
-        " ''His rigorous air quality and noise assessments are a standard for excellence. He consistently delivers models and reports that are technically sound.'' ",
+        " ''His rigorous air quality and noise assessments are standard for excellence. He consistently delivers technically sound models and reports.'' ",
       image: "/images/testimonials-pics/Jan-1.webp",
     },
     {
@@ -122,7 +122,7 @@ export function ServicesSection() {
       title: "Environmental & SS Specialist",
       contact: "mequanntt@yahoo.com",
       description:
-        " ''His talent for systematic data collection, management, and clear presentation was a key asset to our ESIA studies. A highly effective communicator.'' ",
+        " ''His talent for systematic data collection, management, and clear presentation was a key asset to our ESIA studies.'' ",
       image: "/images/testimonials-pics/Mekuanent-1.webp",
     },
     {
@@ -381,24 +381,24 @@ export function ServicesSection() {
                     rel="noopener noreferrer"
                     className="block group hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                   >
-                    <Card className="pt-2 h-44 overflow-hidden border-1 border-primary/50 hover:border-secondary/70 transition-colors">
+                    <Card className="pt-1 h-46 overflow-hidden border-1 border-primary/50 hover:border-secondary/70 transition-colors">
                       <div className="relative">
                         <div className="flex flex-col items-end mr-2">
                           <img
                             src={testimonial.image || "/placeholder.svg"}
                             alt={testimonial.title}
-                            className="rounded-full w-10 h-10 object-cover"
+                            className="rounded-full w-8 h-8 object-cover"
                           />
                         </div>
-                        <div className="absolute top-3 left-3">
-                          <Badge className="bg-transparent text-black font-bold text-icon">
+                        <div className="absolute top-1.5 left-3">
+                          <Badge className="text-xs bg-transparent text-black font-bold text-icon">
                             {testimonial.name}
                           </Badge>
                           <p className="ml-3 text-xs text-black leading-relaxed">{testimonial.title}</p>
                         </div>
                       </div>
 
-                      <CardContent className="space-y-1">
+                      <CardContent className="space-y-1 mb-2">
                         <p className="text-xs text-black leading-relaxed">{testimonial.description}</p>
                         <div className="absolute botom-2 left-8">
                           <p className="text-xs italic text-black leading-relaxed text-right mt-4">{testimonial.contact}</p>

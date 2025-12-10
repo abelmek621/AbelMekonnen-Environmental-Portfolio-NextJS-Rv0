@@ -155,7 +155,7 @@ interface ProjectMapProps {
 
 /** Main exported component */
 export default function ProjectMap({ projects = [], height = '76vh', centerProjectId = null }: ProjectMapProps) {
-  const defaultCenter: [number, number] = [9.145, 40.489]; // Ethiopia center
+  const defaultCenter: [number, number] = [9.245, 40.489]; // Ethiopia center
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [isClient, setIsClient] = useState(false);
 
@@ -264,8 +264,8 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
         </div>
       </div>
       {/* Filter controls for mobile screens */}
-      <div className="md:hidden flex flex-wrap gap-3 items-center mb-3">
-        <div className="ml-2 text-sm font-medium mr-1">Filter:</div>
+      <div className="md:hidden flex gap-1 items-center mb-2">
+        <div className="text-xs font-medium">Filter:</div>
         {categories.map((cat) => (
           <button
             key={cat}
@@ -280,9 +280,9 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
         {/* <div className="text-xs text-muted-foreground">
           Tap markers to open details. Use the filter buttons to show specific project categories.
         </div> */}
-        <div className="mr-2 ml-auto text-xs text-muted-foreground">
+        {/* <div className="mr-2 ml-auto text-xs text-muted-foreground">
           {uniqueVisibleProjects} / {totalProjectsWithFeatures}
-        </div>
+        </div> */}
       </div>
 
       {/* Map container */}
@@ -302,7 +302,7 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
           />
 
           {/* Add MapLegend component here if you want it inside */}
-          {/* <MapLegend /> */}
+          <MapLegend />
 
           {/* Transmission Lines */}
           {transmissionLineProjects.map((p) => (
@@ -506,7 +506,7 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
               }}
             >
               <Popup>
-                <div style={{ maxWidth: 280, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
+                <div style={{ width:150, maxWidth: 280, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
                   <h3 style={{ fontWeight: 700, marginBottom: 2, fontSize: '12px' }}>{p.title}</h3>
                   <p style={{ fontSize: 11, marginBottom: 4, lineHeight: '1.4' }}>{p.description}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '10px', color: '#F59E0B', fontWeight: '600' }}>
@@ -581,39 +581,21 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
                 }
               }}
             >
-              <Popup minWidth={220} maxWidth={360}>
-                <div style={{ maxWidth: 320, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
+              <Popup>
+                <div style={{ width:150, maxWidth: 280, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial" }}>
                   <h3 style={{ fontWeight: 700, marginBottom: 2, fontSize: '12px' }}>{p.title}</h3>
-                  {/* {(p.imageThumb || p.image) ? (
-                    <img
-                      src={p.imageThumb || p.image}
-                      alt={p.title}
-                      loading="lazy"
-                      style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 6, marginBottom: 8 }}
-                    />
-                  ) : null} */}
                   <p style={{ fontSize: 11, marginBottom: 4, lineHeight: '1.4' }}>{p.description}</p>
-                  {/* {p.tags && p.tags.length > 0 && (
-                    <div style={{ marginBottom: 8 }}>
-                      {p.tags.map((tag, index) => (
-                        <span 
-                          key={index}
-                          style={{
-                            display: 'inline-block',
-                            fontSize: '11px',
-                            backgroundColor: '#f1f5f9',
-                            color: '#0ea5e9',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            marginRight: '4px',
-                            marginBottom: '4px'
-                          }}
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )} */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', fontSize: '10px', color: '#043335ff', fontWeight: '600' }}>
+                    <div style={{ 
+                      width: '16px', 
+                      height: '16px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}
+                    />
+                    <span>{p.category}</span>
+                  </div>
                   {p.link ? (
                     <a 
                       href={p.link} 
@@ -642,7 +624,7 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
       </div>
 
       {/* External Legend (keep it outside for now) */}
-      <div className="hidden md:flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
+      {/* <div className="hidden md:flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
         <div className="font-bold ml-10 text-foreground text-pretty text-sm">
           Expertise:
         </div>
@@ -662,27 +644,27 @@ export default function ProjectMap({ projects = [], height = '76vh', centerProje
           <div className="w-4 h-1 bg-red-600 opacity-80" style={{ backgroundImage: 'linear-gradient(to right, #f1e6e6ff 50%, transparent 50%)', backgroundSize: '8px 4px' }}></div>
           <span>GIS for Transmission Lines</span>
         </div>
-      </div>
+      </div> */}
       {/* External Legend for mobile screens */}
-      <div className="md:hidden flex flex-wrap gap-2 mt-2 mb-6 text-xs text-muted-foreground">
-        <div className="ml-2 font-bold text-foreground text-pretty text-xs">
+      <div className="md:hidden flex gap-2 mt-2 mb-6 text-xs text-muted-foreground">
+        <div className="font-medium text-foreground text-pretty text-xs">
           Expertise:
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
           <span>Hydrology</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-primary"></div>
+          <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
           <span>Air Quality & Noise</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-          <span>GIS & Remote Sensing</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+          <span>GIS</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-4 h-1 bg-red-600 opacity-80" style={{ backgroundImage: 'linear-gradient(to right, #f1e6e6ff 50%, transparent 50%)', backgroundSize: '8px 4px' }}></div>
-          <span>Transmission Lines</span>
+          <span>TLs</span>
         </div>
       </div>
     </div>
